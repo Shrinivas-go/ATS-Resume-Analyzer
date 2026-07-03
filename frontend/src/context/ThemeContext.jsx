@@ -3,11 +3,11 @@ import { createContext, useContext, useEffect, useState } from 'react';
 const ThemeContext = createContext(undefined);
 
 export function ThemeProvider({ children }) {
-  const theme = 'dark';
+  const theme = 'light';
 
   useEffect(() => {
-    // Force 'dark' mode globally on the document root
-    document.documentElement.setAttribute('data-theme', 'dark');
+    // Force 'light' mode globally on the document root
+    document.documentElement.setAttribute('data-theme', 'light');
   }, []);
 
   const toggleTheme = () => {
@@ -18,7 +18,7 @@ export function ThemeProvider({ children }) {
     theme,
     setTheme: () => {},
     toggleTheme,
-    isDark: true,
+    isDark: false,
   };
 
   return (
