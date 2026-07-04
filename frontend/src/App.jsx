@@ -1,63 +1,87 @@
+import React, { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider } from './context/ThemeContext';
-import { AuthProvider } from './context/AuthContext';
-import { AvatarProvider } from './context/AvatarContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
-// Pages
+// Components & Pages
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+import AuthModal from './components/AuthModal';
 import Landing from './pages/Landing';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Onboarding from './pages/Onboarding';
-import Help from './pages/Help';
-import Dashboard from './pages/Dashboard';
-import Profile from './pages/Profile';
-import ResumeAnalysis from './pages/ResumeAnalysis';
-import ResumeBuilder from './pages/ResumeBuilder';
-import JDGenerator from './pages/JDGenerator';
+import Dashboard from './components/Dashboard';
 
-// Components
-import ProtectedRoute from './components/auth/ProtectedRoute';
+function AppContent() {
+  const { user, loading } = useAuth();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState('login'); // 'login' or 'register'
 
-function App() {
+  const handleOpenAuth = (mode = 'login') => {
+    setAuthMode(mode);
+    setAuthModalOpen(true);
+  };
+
+  const handleCloseAuth = () => {
+    setAuthModalOpen(false);
+  };
+
+  const handleSwitchAuthMode = (mode) => {
+    setAuthMode(mode);
+  };
+
+  // Simple Protected Route helper component
+  const ProtectedRoute = ({ children }) => {
+    if (loading) {
+      return (
+        <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>
+          <h3>Loading your profile...</h3>
+        </div>
+      );
+    }
+    if (!user) {
+      // If not logged in, redirect home and open the login dialog
+      return <Navigate to="/" replace />;
+    }
+    return children;
+  };
+
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <AvatarProvider>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/help" element={<Help />} />
+    <div className="app-wrapper">
+      {/* Universal Navbar */}
+      <Navbar onOpenAuth={handleOpenAuth} />
 
-            {/* Semi-protected (first scan free, then requires auth) */}
-            <Route path="/analyze" element={<ResumeAnalysis />} />
-            <Route path="/builder" element={<ResumeBuilder />} />
-            <Route path="/jd-generator" element={<JDGenerator />} />
+      {/* Main Page Area */}
+      <main className="main-content">
+        <Routes>
+          <Route path="/" element={<Landing onOpenAuth={handleOpenAuth} />} />
+          
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
 
-            {/* Protected routes */}
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } />
+          {/* Catch-all redirect to Landing */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
 
-            {/* Legacy route redirect */}
-            <Route path="/ats" element={<Navigate to="/analyze" replace />} />
+      {/* Universal Footer */}
+      <Footer />
 
-            {/* Catch all */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </AvatarProvider>
-      </AuthProvider>
-    </ThemeProvider>
+      {/* Auth Modal overlay */}
+      <AuthModal
+        isOpen={authModalOpen}
+        mode={authMode}
+        onClose={handleCloseAuth}
+        onSwitchMode={handleSwitchAuthMode}
+      />
+    </div>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}

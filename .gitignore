@@ -32,3 +32,6 @@ backend/test-minimal.pdf
 # Legacy duplicate folders (safe to delete after monorepo migration)
 ats-backend/
 ats-resume-checker/
+
+# Archive/backup folders
+archive(3)/

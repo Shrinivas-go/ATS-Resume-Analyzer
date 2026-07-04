@@ -1,290 +1,469 @@
-/* ===========================================
-   ATS Resume Checker - Global Styles
-   Production-ready base styles
-   =========================================== */
+/* ==========================================================================
+   ATS RESUME CHECKER - Notion-Inspired Flat Design System
+   Color Palette: Blue Serenity
+   ========================================================================== */
 
-/* Import design tokens */
-@import './design-tokens.css';
-
-/* Google Fonts - Inter */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* ============================================
-   CSS RESET
-   ============================================ */
-*,
-*::before,
-*::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+:root {
+  /* Blue Serenity Color Palette Tokens */
+  --alice-blue: #edf2fb;
+  --lavender: #e2eafc;
+  --lavender-2: #d7e3fc;
+  --periwinkle: #ccdbfd;
+  --periwinkle-2: #c1d3fe;
+  --periwinkle-3: #b6ccfe;
+  --baby-blue-ice: #abc4ff;
+
+  /* Notion Surface & High Contrast Text */
+  --bg-page: var(--alice-blue);
+  --bg-surface: #ffffff;
+  --border-color: #d1d5db; /* 1px light gray border */
+  --border-color-accent: var(--periwinkle-3);
+  --text-main: #1f2937; /* Charcoal */
+  --text-muted: #4b5563; /* Slate */
+  --text-light: #9ca3af;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  
+  /* State Colors */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
 }
 
-html {
-    font-size: 16px;
-    -webkit-text-size-adjust: 100%;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-}
-
-html,
-body,
-#root {
-    height: 100%;
-    width: 100%;
+/* ── CSS RESET ───────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-    font-family: var(--font-sans);
-    font-size: var(--text-base);
-    line-height: var(--leading-normal);
-    color: var(--text-primary);
-    background: var(--aurora-bg);
-    background-attachment: fixed;
-    background-size: cover;
-    position: relative;
-    overflow-x: hidden;
+  font-family: var(--font-sans);
+  background-color: var(--bg-page);
+  background-image: radial-gradient(var(--periwinkle-2) 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+  overflow-x: hidden;
 }
 
-/* Noise overlay */
-body::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-image: var(--noise-overlay);
-    pointer-events: none;
-    z-index: 9999;
-}
-
-/* ============================================
-   TYPOGRAPHY BASE
-   ============================================ */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-    font-weight: var(--font-semibold);
-    line-height: var(--leading-tight);
-    letter-spacing: var(--tracking-tight);
-    color: var(--text-primary);
-}
-
-h1 {
-    font-size: var(--text-4xl);
-}
-
-h2 {
-    font-size: var(--text-3xl);
-}
-
-h3 {
-    font-size: var(--text-2xl);
-}
-
-h4 {
-    font-size: var(--text-xl);
-}
-
-h5 {
-    font-size: var(--text-lg);
-}
-
-h6 {
-    font-size: var(--text-base);
-}
-
-p {
-    margin-bottom: var(--space-4);
-    line-height: var(--leading-relaxed);
-}
-
-small {
-    font-size: var(--text-sm);
-}
-
-/* ============================================
-   LINKS
-   ============================================ */
 a {
-    color: var(--brand-primary);
-    text-decoration: none;
-    transition: color var(--transition-fast);
+  color: inherit;
+  text-decoration: none;
 }
 
-a:hover {
-    color: var(--brand-primary-hover);
+button, input, textarea {
+  font-family: inherit;
 }
 
-a:focus-visible {
-    outline: 2px solid var(--focus-ring);
-    outline-offset: 2px;
-    border-radius: var(--radius-sm);
+/* ── LAYOUT UTILITIES ────────────────────────────────────────────────────── */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.align-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.justify-center { justify-content: center; }
+.grid { display: grid; }
+.gap-1 { gap: 0.25rem; }
+.gap-2 { gap: 0.5rem; }
+.gap-4 { gap: 1rem; }
+.gap-6 { gap: 1.5rem; }
+.gap-8 { gap: 2rem; }
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
 }
 
-/* ============================================
-   LISTS
-   ============================================ */
-ul,
-ol {
-    padding-left: var(--space-6);
+.text-center { text-align: center; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mb-6 { margin-bottom: 1.5rem; }
+.mb-8 { margin-bottom: 2rem; }
+.mt-4 { margin-top: 1rem; }
+.p-4 { padding: 1rem; }
+.p-6 { padding: 1.5rem; }
+.p-8 { padding: 2rem; }
+
+/* ── NOTION ELEMENTS (Flat & High-Contrast) ──────────────────────────────── */
+.notion-card {
+  background-color: var(--bg-surface);
+  border: 2px solid var(--text-main);
+  border-radius: 4px; /* Crisp Notion corners */
+  padding: 1.5rem;
+  box-shadow: 4px 4px 0px var(--text-main); /* 3D flat shadow */
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-li {
-    margin-bottom: var(--space-2);
+.notion-card:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0px var(--text-main);
 }
 
-/* ============================================
-   FORM ELEMENTS BASE
-   ============================================ */
-input,
-textarea,
-select,
-button {
-    font-family: inherit;
-    font-size: inherit;
-    line-height: inherit;
+.notion-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--text-main);
+  border-radius: 4px;
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06); /* Subtle inset shadow */
+  outline: none;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease;
 }
 
-button {
-    cursor: pointer;
-    border: none;
-    background: none;
+.notion-input:focus {
+  border-color: var(--periwinkle-3);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06), 0 0 0 2px var(--lavender);
 }
 
-button:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
+/* Flat solid buttons */
+.notion-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 1.3rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 4px;
+  border: 2px solid var(--text-main);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  cursor: pointer;
+  box-shadow: 3px 3px 0px var(--text-main); /* Tactile 3D shadow offset */
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.1s ease;
 }
 
-/* ============================================
-   FOCUS STATES
-   ============================================ */
-:focus-visible {
-    outline: 2px solid var(--focus-ring);
-    outline-offset: 2px;
+.notion-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0px var(--text-main);
+  background-color: var(--alice-blue);
 }
 
-/* Remove outline for mouse users */
-:focus:not(:focus-visible) {
-    outline: none;
+.notion-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px var(--text-main);
 }
 
-/* ============================================
-   SCROLLBAR STYLING
-   ============================================ */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+.notion-btn-primary {
+  background-color: var(--periwinkle);
+  border-color: var(--text-main);
 }
 
-::-webkit-scrollbar-track {
-    background: var(--bg-surface-secondary);
-    border-radius: var(--radius-full);
+.notion-btn-primary:hover {
+  background-color: var(--periwinkle-2);
 }
 
-::-webkit-scrollbar-thumb {
-    background: var(--border-strong);
-    border-radius: var(--radius-full);
+.notion-btn-danger {
+  background-color: #fee2e2;
+  border-color: var(--text-main);
+  color: var(--color-danger);
 }
 
-::-webkit-scrollbar-thumb:hover {
-    background: var(--text-tertiary);
+.notion-btn-danger:hover {
+  background-color: #fecaca;
 }
 
-/* ============================================
-   SELECTION
-   ============================================ */
-::selection {
-    background-color: var(--purple-500);
-    color: white;
+.notion-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border-radius: 3px;
+  border: 1px solid var(--border-color);
+  background-color: var(--lavender);
+  color: var(--text-muted);
 }
 
-/* ============================================
-   UTILITY CLASSES
-   ============================================ */
-.sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
+.notion-tag-core {
+  background-color: var(--periwinkle);
+  border-color: var(--periwinkle-2);
+  color: var(--text-main);
 }
 
-.truncate {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.notion-tag-success {
+  background-color: #d1fae5;
+  border-color: #a7f3d0;
+  color: var(--color-success);
 }
 
-/* ============================================
-   ANIMATIONS
-   ============================================ */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
+.notion-tag-danger {
+  background-color: #fee2e2;
+  border-color: #fca5a5;
+  color: var(--color-danger);
 }
 
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* ── MAIN LAYOUT ─────────────────────────────────────────────────────────── */
+.app-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-@keyframes pulse {
-
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.5;
-    }
+.main-content {
+  flex-grow: 1;
 }
 
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
+/* ── HEADER & NAVBAR ─────────────────────────────────────────────────────── */
+.navbar {
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
-.animate-fadeIn {
-    animation: fadeIn var(--transition-base) ease-out;
+.navbar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.animate-slideUp {
-    animation: slideUp var(--transition-slow) ease-out;
+.logo {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.animate-pulse {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+.nav-links {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
 }
 
-.animate-spin {
-    animation: spin 1s linear infinite;
+.nav-link {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.nav-link:hover {
+  color: var(--text-main);
+}
+
+/* ── HERO SECTION ────────────────────────────────────────────────────────── */
+.hero-section {
+  padding: 3.5rem 0 2.5rem;
+  background-color: transparent;
+}
+
+.hero-title {
+  font-size: 2.75rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+  margin-bottom: 1.25rem;
+}
+
+.hero-subtitle {
+  font-size: 1.15rem;
+  color: var(--text-muted);
+  max-width: 600px;
+  margin: 0 auto 2rem;
+}
+
+/* ── FEATURE SECTIONS ────────────────────────────────────────────────────── */
+.feature-section {
+  padding: 3.5rem 0;
+}
+
+.section-tag {
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-light);
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.section-title {
+  font-size: 1.85rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .feature-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
+
+.feature-graphic {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── HOW TO USE SECTION ──────────────────────────────────────────────────── */
+.how-to-use-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+@media (max-width: 768px) {
+  .how-to-use-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.step-num {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--baby-blue-ice);
+  margin-bottom: 0.5rem;
+}
+
+/* ── CANDIDATE DASHBOARD ─────────────────────────────────────────────────── */
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 2rem;
+  padding: 2rem 0;
+}
+
+@media (max-width: 900px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sidebar-panel {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 1.5rem;
+  max-height: calc(100vh - 120px);
+  position: sticky;
+  top: 100px;
+  overflow-y: auto;
+}
+
+.history-item {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--alice-blue);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background-color 0.15s ease;
+}
+
+.history-item:hover {
+  background-color: var(--alice-blue);
+}
+
+.history-item.active {
+  background-color: var(--lavender-2);
+  border: 1px solid var(--periwinkle);
+}
+
+/* File Drop Zone */
+.dropzone {
+  border: 2px dashed var(--border-color);
+  border-radius: 4px;
+  padding: 2.5rem 1.5rem;
+  background-color: var(--alice-blue);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dropzone.active {
+  border-color: var(--periwinkle-3);
+  background-color: var(--lavender);
+}
+
+/* Score Circle Ring */
+.score-container {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.score-badge {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 4px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  font-weight: 700;
+  background-color: var(--bg-surface);
+}
+
+.score-badge.high {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.score-badge.mid {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.score-badge.low {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+/* ── MODAL ───────────────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  width: 100%;
+  max-width: 400px;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+/* ── FOOTER ──────────────────────────────────────────────────────────────── */
+.footer {
+  background-color: var(--bg-surface);
+  border-top: 1px solid var(--border-color);
+  padding: 2rem 0;
+  margin-top: 4rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-light);
 }
