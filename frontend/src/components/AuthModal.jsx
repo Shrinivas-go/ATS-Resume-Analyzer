@@ -132,11 +132,17 @@ export default function AuthModal({ isOpen, mode, onClose, onSwitchMode }) {
 
         {/* Google OAuth Login Button */}
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <GoogleLogin
-            onSuccess={handleGoogleSuccess}
-            onError={() => setFormError('Google Login failed.')}
-            useOneTap={false}
-          />
+          {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setFormError('Google Login failed. Please try email login.')}
+              useOneTap={false}
+            />
+          ) : (
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-light)', fontStyle: 'italic' }}>
+              Google Login is not configured. Use email and password instead.
+            </p>
+          )}
         </div>
 
         <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.85rem' }}>

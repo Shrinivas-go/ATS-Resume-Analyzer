@@ -4,11 +4,11 @@ import Hero from '../components/Hero';
 export default function Landing({ onOpenAuth }) {
   return (
     <div className="landing-page">
-      {/* 1. Hero Section */}
+      {/* 1. Hero Section — no dotted background, has decorative panels */}
       <Hero onOpenAuth={onOpenAuth} />
 
-      {/* 2. What it Does - Section 1: ML Category Classification */}
-      <section id="features" className="feature-section">
+      {/* 2. What it Does — Section 1: ML Category Classification */}
+      <section id="features" className="feature-section no-dots">
         <div className="container">
           <div className="feature-grid">
             <div>
@@ -24,25 +24,20 @@ export default function Landing({ onOpenAuth }) {
               </ul>
             </div>
             <div className="feature-graphic">
-              <img
-                src="/resume_classifier_flat.png"
-                alt="ML Job Profile Classifier"
-                style={{
-                  width: '100%',
-                  maxWidth: '380px',
-                  border: '2px solid var(--text-main)',
-                  borderRadius: '4px',
-                  boxShadow: '4px 4px 0px var(--text-main)',
-                  display: 'block'
-                }}
-              />
+              <div className="feature-img-slot">
+                <img
+                  src="/resume_classifier_flat.png"
+                  alt="ML Job Profile Classifier"
+                  style={{ width: '100%', display: 'block' }}
+                />
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 3. What it Does - Section 2: Skill Gap Analysis */}
-      <section className="feature-section">
+      {/* 3. What it Does — Section 2: Skill Gap Analysis */}
+      <section className="feature-section no-dots">
         <div className="container">
           <div className="feature-grid" style={{ direction: 'rtl' }}>
             <div style={{ direction: 'ltr' }}>
@@ -58,25 +53,20 @@ export default function Landing({ onOpenAuth }) {
               </ul>
             </div>
             <div className="feature-graphic" style={{ direction: 'ltr' }}>
-              <img
-                src="/skill_gap_analysis_flat.png"
-                alt="Weighted Skill Gap Analysis"
-                style={{
-                  width: '100%',
-                  maxWidth: '380px',
-                  border: '2px solid var(--text-main)',
-                  borderRadius: '4px',
-                  boxShadow: '4px 4px 0px var(--text-main)',
-                  display: 'block'
-                }}
-              />
+              <div className="feature-img-slot">
+                <img
+                  src="/skill_gap_analysis_flat.png"
+                  alt="Weighted Skill Gap Analysis"
+                  style={{ width: '100%', display: 'block' }}
+                />
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 4. How to Use Section */}
-      <section id="how-to-use" className="feature-section">
+      {/* 4. How to Use Section — keeps dotted background */}
+      <section id="how-to-use" className="feature-section has-dots">
         <div className="container">
           <span className="section-tag text-center" style={{ display: 'block' }}>Instructions</span>
           <h2 className="section-title text-center">Three Simple Steps</h2>

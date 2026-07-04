@@ -83,7 +83,7 @@ describe('ATS Checker Utilities', () => {
             const { atsScore, explanation } = calculateWeightedATSScore(comparison);
             expect(atsScore).toBeGreaterThanOrEqual(60);
             expect(atsScore).toBeLessThanOrEqual(63);
-            expect(explanation).toContain('Good match!');
+            expect(explanation).toContain('Good Match!');
         });
     });
 });

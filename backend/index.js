@@ -19,7 +19,8 @@ const {
     extractSkills,
     extractWeightedJDSkills,
     compareWeightedSkills,
-    calculateWeightedATSScore
+    calculateWeightedATSScore,
+    predictCategoryAndConfidence
 } = require('./ats_checker');
 
 const app = express();
@@ -31,7 +32,7 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'fallback-refresh-s
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 
-// ── CONNECT TO DATABASE ──────────────────────────────────────────────────────
+// Connect to database
 const connectDB = async () => {
     try {
         await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/ats-resume-checker');
@@ -42,7 +43,7 @@ const connectDB = async () => {
 };
 connectDB();
 
-// ── MIDDLEWARES ──────────────────────────────────────────────────────────────
+// Express middleware configuration
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({
     origin: FRONTEND_URL,
@@ -73,7 +74,7 @@ const fileFilter = (req, file, cb) => {
 };
 const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
 
-// ── JWT HELPERS ──────────────────────────────────────────────────────────────
+// JWT helper functions
 const ACCESS_COOKIE_MAX_AGE = 15 * 60 * 1000;       // 15 minutes
 const REFRESH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -92,7 +93,7 @@ function generateTokens(userId, role) {
     return { accessToken, refreshToken };
 }
 
-// ── AUTH MIDDLEWARE ──────────────────────────────────────────────────────────
+// Auth middlewares
 // Checks if the user is logged in using JWT access tokens.
 // If the access token is missing or expired, it tries to silently refresh it using the refresh token.
 async function authMiddleware(req, res, next) {
@@ -203,7 +204,7 @@ function requireAuth(req, res, next) {
     next();
 }
 
-// ── AUTHENTICATION ROUTES ────────────────────────────────────────────────────
+// Authentication endpoints
 
 // User registration
 app.post('/auth/register', async (req, res) => {
@@ -246,6 +247,14 @@ app.post('/auth/login', async (req, res) => {
         const user = await User.findOne({ email }).select('+password');
         if (!user) {
             return res.status(401).json({ success: false, message: 'Invalid email or password' });
+        }
+
+        // Google-only accounts have no password — prevent bcrypt crash
+        if (!user.password) {
+            return res.status(401).json({
+                success: false,
+                message: 'This account was created with Google. Please use Google Login instead.'
+            });
         }
 
         const isMatch = await user.comparePassword(password);
@@ -374,7 +383,7 @@ app.get('/auth/me', authMiddleware, requireAuth, async (req, res) => {
     }
 });
 
-// ── CORE RESUME ANALYZER ROUTE ───────────────────────────────────────────────
+// Core resume analyzer routes
 
 // Processes uploaded PDF resume and target Job Description text
 app.post('/api/analyze', optionalAuthMiddleware, upload.single('resume'), async (req, res) => {
@@ -398,26 +407,11 @@ app.post('/api/analyze', optionalAuthMiddleware, upload.single('resume'), async 
             });
         }
 
-        // 2. Predict job category using Flask ML API
-        let predictedCategory = 'Unknown';
-        let predictionConfidence = 0.0;
-        try {
-            // Call the local Flask server running on port 5002
-            const flaskResponse = await fetch('http://localhost:5002/predict', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: resumeText })
-            });
-
-            if (flaskResponse.ok) {
-                const flaskData = await flaskResponse.json();
-                predictedCategory = flaskData.category;
-                predictionConfidence = flaskData.confidence;
-            }
-        } catch (flaskErr) {
-            console.error('Failed to communicate with Flask ML API:', flaskErr.message);
-            // Non-blocking fallback: model might not be running, proceed with 'Unknown' category
-        }
+        // 2. Predict job category using local JS classifier
+        const prediction = predictCategoryAndConfidence(resumeText);
+        const predictedCategory = prediction.category;
+        const predictionConfidence = prediction.confidence;
+        const similarityScore = null;
 
         // 3. Extract contact info and skills from resume text
         const contactInfo = extractContactInfo(resumeText);
@@ -427,15 +421,16 @@ app.post('/api/analyze', optionalAuthMiddleware, upload.single('resume'), async 
         const { coreSkills, optionalSkills } = extractWeightedJDSkills(jobDescription);
         const comparison = compareWeightedSkills(resumeSkills, coreSkills, optionalSkills);
 
-        // 5. Calculate ATS Score & Explanation
-        const { atsScore, explanation } = calculateWeightedATSScore(comparison);
+        // 5. Calculate Weighted ATS Score, Explanation, Gaps & Strengths
+        const { atsScore, explanation, details, confidence } = calculateWeightedATSScore(comparison, resumeText, jobDescription, similarityScore);
 
         const results = {
             success: true,
             score: atsScore,
             explanation,
+            details,
             predictedCategory,
-            predictionConfidence,
+            predictionConfidence: confidence / 100,
             contactInfo,
             skillsAnalyzed: {
                 resumeSkillsCount: resumeSkills.length,

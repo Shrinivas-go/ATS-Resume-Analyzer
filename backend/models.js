@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-// ── USER SCHEMA ─────────────────────────────────────────────────────────────
+// User Schema
 // Stores credential and basic profile information for local and Google OAuth users.
 const userSchema = new mongoose.Schema({
     name: {
@@ -59,6 +59,7 @@ userSchema.pre('save', async function() {
 
 // Compare password helper for login
 userSchema.methods.comparePassword = async function(candidatePassword) {
+    if (!this.password) return false; // Google-only accounts have no password hash
     return await bcrypt.compare(candidatePassword, this.password);
 };
 
@@ -73,7 +74,7 @@ userSchema.methods.toJSON = function() {
 
 const User = mongoose.model('User', userSchema);
 
-// ── SCAN HISTORY SCHEMA ──────────────────────────────────────────────────────
+// Scan History Schema
 // Tracks resume analysis events for candidate dashboards.
 const scanHistorySchema = new mongoose.Schema({
     userId: {

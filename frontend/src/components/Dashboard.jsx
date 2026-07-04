@@ -1,6 +1,50 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { API_URL } from '../config/api';
+import { jsPDF } from 'jspdf';
+
+// SVG Score Ring component
+function ScoreRing({ score, size = 120 }) {
+  const radius = (size - 16) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const filled = (score / 100) * circumference;
+
+  let color = '#ef4444'; // red
+  let label = 'Weak Match';
+  if (score >= 80) { color = '#10b981'; label = 'Strong Match'; }
+  else if (score >= 50) { color = '#f59e0b'; label = 'Good Match'; }
+
+  return (
+    <div className="score-ring-wrapper">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="var(--lavender)" strokeWidth="10" />
+        <circle
+          cx={size/2} cy={size/2} r={radius} fill="none"
+          stroke={color} strokeWidth="10"
+          strokeDasharray={`${filled} ${circumference}`}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${size/2} ${size/2})`}
+          className="score-ring-fill"
+        />
+      </svg>
+      <div className="score-ring-text">
+        <span className="score-ring-number" style={{ color }}>{score}%</span>
+      </div>
+      <p className="score-ring-label" style={{ color }}>{label}</p>
+    </div>
+  );
+}
+
+// Horizontal confidence bar
+function ConfidenceBar({ value }) {
+  const pct = Math.round(value * 100);
+  return (
+    <div className="confidence-bar-track">
+      <div className="confidence-bar-fill" style={{ width: `${pct}%` }}></div>
+      <span className="confidence-bar-text">{pct}%</span>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const [file, setFile] = useState(null);
@@ -101,7 +145,6 @@ export default function Dashboard() {
 
       if (res.data.success) {
         setSuccessResult(res.data);
-        // Refresh scan history to show the new scan
         fetchHistory();
       } else {
         setError(res.data.message || 'Analysis failed.');
@@ -117,15 +160,57 @@ export default function Dashboard() {
   // Load a historical scan result into view
   const handleLoadHistoryItem = (scan) => {
     setActiveHistoryId(scan._id);
+    
+    // Recompute match details on the fly for history scans if details object isn't present
+    const matchedCore = scan.matchedSkills || [];
+    const missingCore = scan.missingSkills || [];
+    const totalCore = matchedCore.length + missingCore.length;
+    
+    let matchTier = 'Weak Match';
+    let matchTierColor = 'danger';
+    let summary = '';
+    
+    if (scan.score >= 80) {
+      matchTier = 'Strong Match';
+      matchTierColor = 'success';
+      summary = 'Your resume aligns strongly with the core requirements of this job posting. You have covered most of the essential qualifications.';
+    } else if (scan.score >= 50) {
+      matchTier = 'Good Match';
+      matchTierColor = 'warning';
+      summary = 'Your resume matches some core requirements but has gaps in key skills. Adding a few missing terms will boost your chances.';
+    } else {
+      matchTier = 'Weak Match';
+      matchTierColor = 'danger';
+      summary = 'Your resume has significant keyword gaps. Automated screeners (ATS) may filter it out unless you add the required terms.';
+    }
+
+    const keyStrengths = [];
+    if (matchedCore.length > 0) {
+      keyStrengths.push(`Core Alignment: You matched ${matchedCore.length} critical skills (like ${matchedCore.slice(0, 3).join(', ')}).`);
+    }
+    keyStrengths.push(`Contact Details: Basic contact details were successfully verified.`);
+
+    const criticalGaps = [];
+    if (missingCore.length > 0) {
+      criticalGaps.push(`Missing Core Keywords: ${missingCore.slice(0, 4).join(', ')}. Try to integrate these keywords naturally into your experience sections.`);
+    }
+
     setSuccessResult({
       score: scan.score,
       explanation: `Historical scan from ${new Date(scan.createdAt).toLocaleDateString()}`,
       predictedCategory: scan.predictedCategory,
       contactInfo: scan.contactInfo,
+      details: {
+        matchTier,
+        matchTierColor,
+        summary,
+        keyStrengths,
+        criticalGaps
+      },
       skillsAnalyzed: {
         resumeSkillsCount: scan.matchedSkills?.length || 0,
-        matchedCore: scan.matchedSkills || [],
-        missingCore: scan.missingSkills || [],
+        matchedCore,
+        missingCore,
         matchedOptional: [],
         missingOptional: []
       }
@@ -141,12 +226,160 @@ export default function Dashboard() {
     setActiveHistoryId(null);
   };
 
-  // Class helper for score color circle
-  const getScoreClass = (score) => {
-    if (score >= 85) return 'high';
-    if (score >= 60) return 'mid';
-    return 'low';
+  const handleDownloadPDF = () => {
+    if (!successResult) return;
+    const doc = new jsPDF();
+    
+    // Title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.setTextColor(31, 41, 55);
+    doc.text('ATS Resume Compatibility Report', 20, 20);
+    
+    // Line separator
+    doc.setDrawColor(209, 213, 219);
+    doc.setLineWidth(0.5);
+    doc.line(20, 25, 190, 25);
+    
+    // Subtitle
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(107, 114, 128);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()} | Target Job: ${jobTitle || 'General Scan'}`, 20, 32);
+    
+    // Compatibility Score Box
+    doc.setFillColor(237, 242, 251); // light blue tint
+    doc.roundedRect(20, 38, 170, 30, 3, 3, 'F');
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(31, 41, 55);
+    doc.text('COMPATIBILITY MATCH SCORE', 25, 46);
+    
+    doc.setFontSize(24);
+    let scoreColor = [239, 68, 68]; // red
+    if (successResult.score >= 80) scoreColor = [16, 185, 129]; // green
+    else if (successResult.score >= 50) scoreColor = [245, 158, 11]; // orange
+    doc.setTextColor(scoreColor[0], scoreColor[1], scoreColor[2]);
+    doc.text(`${successResult.score}%`, 25, 58);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(31, 41, 55);
+    doc.text(successResult.details?.matchTier || (successResult.score >= 80 ? 'Strong Match' : successResult.score >= 50 ? 'Good Match' : 'Weak Match'), 60, 58);
+    
+    // AI Category classification
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(107, 114, 128);
+    doc.text(`ML Classifier Job Category: ${successResult.predictedCategory || 'Unknown'}`, 25, 64);
+    
+    // Plain English breakdown
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(31, 41, 55);
+    doc.text('Plain English Summary', 20, 80);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(75, 85, 99);
+    const summaryText = successResult.details?.summary || 
+      (successResult.score >= 80 ? 'Your resume aligns strongly with the requirements. You have covered most of the essential qualifications.' :
+       successResult.score >= 50 ? 'Your resume matches some requirements but has gaps in key skills. Adding missing terms will boost your score.' :
+       'Your resume has significant keyword gaps. Automated screening systems may filter it out unless you add the required terms.');
+    const splitSummary = doc.splitTextToSize(summaryText, 170);
+    doc.text(splitSummary, 20, 88);
+    
+    // Strengths
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(16, 185, 129); // green
+    doc.text('Key Strengths', 20, 105);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(75, 85, 99);
+    const strengths = successResult.details?.keyStrengths || [
+      `Keyword Match: You matched ${successResult.skillsAnalyzed?.matchedCore?.length || 0} core keyword(s) required by the employer.`,
+      `Contact Details: Email and phone information are clearly present.`
+    ];
+    let y = 112;
+    strengths.forEach(str => {
+      const splitStr = doc.splitTextToSize(`- ${str}`, 170);
+      doc.text(splitStr, 20, y);
+      y += (splitStr.length * 5);
+    });
+    
+    // Critical Gaps
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(239, 68, 68); // red
+    doc.text('Missing Keywords & Recommendations', 20, y + 5);
+    y += 12;
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(75, 85, 99);
+    const gaps = successResult.details?.criticalGaps || [
+      `Missing Core Keywords: ${successResult.skillsAnalyzed?.missingCore?.slice(0, 4).join(', ') || 'None'}.`,
+      `Action Step: Open your resume editor, integrate these keywords naturally into your experience, and re-upload.`
+    ];
+    gaps.forEach(gap => {
+      const splitGap = doc.splitTextToSize(`- ${gap}`, 170);
+      doc.text(splitGap, 20, y);
+      y += (splitGap.length * 5);
+    });
+    
+    // Footer
+    doc.setDrawColor(229, 231, 235);
+    doc.line(20, 270, 190, 270);
+    doc.setFontSize(8);
+    doc.setTextColor(156, 163, 175);
+    doc.text('ATS Resume Checker - Optimize your resume and pass the automated screening systems.', 20, 275);
+    
+    doc.save(`ATS-Resume-Analysis-${jobTitle || 'Report'}.pdf`);
   };
+
+  // Helper to resolve explainability details
+  const getDetails = (result) => {
+    if (result.details) return result.details;
+    
+    const matched = result.skillsAnalyzed?.matchedCore || [];
+    const missing = result.skillsAnalyzed?.missingCore || [];
+    
+    let matchTier = 'Weak Match';
+    let matchTierColor = 'danger';
+    let summary = '';
+    
+    if (result.score >= 80) {
+      matchTier = 'Strong Match';
+      matchTierColor = 'success';
+      summary = 'Your resume aligns strongly with the core requirements of this job posting. You have covered most of the essential qualifications.';
+    } else if (result.score >= 50) {
+      matchTier = 'Good Match';
+      matchTierColor = 'warning';
+      summary = 'Your resume matches some core requirements but has gaps in key skills. Adding a few missing terms will boost your chances.';
+    } else {
+      matchTier = 'Weak Match';
+      matchTierColor = 'danger';
+      summary = 'Your resume has significant keyword gaps. Automated screeners (ATS) may filter it out unless you add the required terms.';
+    }
+
+    const keyStrengths = [];
+    if (matched.length > 0) {
+      keyStrengths.push(`Core Alignment: You matched ${matched.length} critical skills (like ${matched.slice(0, 3).join(', ')}).`);
+    }
+    keyStrengths.push(`Contact Details: Basic contact details were successfully verified.`);
+
+    const criticalGaps = [];
+    if (missing.length > 0) {
+      criticalGaps.push(`Missing Core Keywords: ${missing.slice(0, 4).join(', ')}. Try to integrate these keywords naturally into your resume experience sections.`);
+    }
+
+    return { matchTier, matchTierColor, summary, keyStrengths, criticalGaps };
+  };
+
+  const details = successResult ? getDetails(successResult) : null;
 
   return (
     <div className="container">
@@ -214,7 +447,7 @@ export default function Dashboard() {
                 <input
                   type="text"
                   className="notion-input"
-                  placeholder="e.g. Software Engineer / Data Scientist"
+                  placeholder="e.g. Software Engineer / Data Scientist / School Teacher"
                   value={jobTitle}
                   onChange={(e) => setJobTitle(e.target.value)}
                 />
@@ -272,90 +505,166 @@ export default function Dashboard() {
               </button>
             </form>
           ) : (
-            /* ANALYSIS RESULTS */
+            /* ═══════════════ ANALYSIS RESULTS ═══════════════ */
             <div className="flex flex-col gap-6">
               
-              {/* Match Score & Prediction Banner */}
-              <div className="notion-card">
-                <div className="score-container">
-                  <div className={`score-badge ${getScoreClass(successResult.score)}`}>
-                    {successResult.score}%
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '0.25rem' }}>
-                      ATS Compatibility Match
-                    </h3>
-                    <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                      {successResult.explanation}
-                    </p>
+              {/* Top Row: Score & Download vs ML Profile Classification */}
+              <div className="results-top-row">
+                
+                {/* Score Summary Card */}
+                <div className="notion-card results-score-card">
+                  <ScoreRing score={successResult.score} size={135} />
+                  
+                  <div style={{ marginTop: '1.25rem', textAlign: 'center', width: '100%' }}>
+                    <button
+                      onClick={handleDownloadPDF}
+                      className="notion-btn notion-btn-primary"
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', width: '100%' }}
+                    >
+                      📥 Download PDF Report
+                    </button>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '1rem' }}>
-                  <div>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-light)', display: 'block', textTransform: 'uppercase' }}>
-                      Predicted Job Profile
-                    </span>
-                    <strong style={{ fontSize: '1rem', color: 'var(--text-main)' }}>
-                      {successResult.predictedCategory}
-                    </strong>
-                  </div>
+                {/* AI Profile Category Card */}
+                <div className="notion-card results-prediction-card">
+                  <span className="section-tag" style={{ color: 'var(--text-muted)' }}>AI Resume Profiler</span>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginTop: '0.25rem' }}>
+                    Predicted Job Field:
+                  </p>
+                  <h3 style={{ fontSize: '1.35rem', fontWeight: '700', color: 'var(--text-main)', marginTop: '0.1rem', wordBreak: 'break-word' }}>
+                    {successResult.predictedCategory || 'General / Unknown'}
+                  </h3>
+                  
                   {successResult.predictionConfidence > 0 && (
-                    <div>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-light)', display: 'block', textTransform: 'uppercase' }}>
-                        Prediction Confidence
-                      </span>
-                      <strong style={{ fontSize: '1rem', color: 'var(--text-main)' }}>
-                        {(successResult.predictionConfidence * 100).toFixed(0)}%
-                      </strong>
+                    <div style={{ marginTop: '1rem' }}>
+                      <div className="flex justify-between" style={{ fontSize: '0.8rem', marginBottom: '0.35rem' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Confidence</span>
+                        <span style={{ fontWeight: '600' }}>{(successResult.predictionConfidence * 100).toFixed(0)}%</span>
+                      </div>
+                      <ConfidenceBar value={successResult.predictionConfidence} />
                     </div>
                   )}
+
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-light)', marginTop: '1rem', lineHeight: '1.3' }}>
+                    * This category represents your overall background as interpreted by our ML model. If it doesn't match the target job, you should tailor your resume language.
+                  </p>
                 </div>
               </div>
 
-              {/* Skill Comparison Results */}
+              {/* Plain English Summary Banner */}
+              <div className={`notion-card plain-english-banner-${details.matchTierColor}`} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div className="flex align-center gap-2">
+                  <span style={{ fontSize: '1.25rem' }}>
+                    {details.matchTierColor === 'success' ? '✅' : details.matchTierColor === 'warning' ? '⚠️' : '🚨'}
+                  </span>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: '700' }}>
+                    {details.matchTier} Overview
+                  </h3>
+                </div>
+                <p style={{ fontSize: '0.925rem', lineHeight: '1.45', color: 'var(--text-muted)' }}>
+                  {details.summary}
+                </p>
+              </div>
+
+              {/* Key Strengths & Critical Gaps side by side */}
+              <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                
+                {/* Key Strengths */}
+                <div className="notion-card" style={{ borderColor: 'var(--color-success)', background: 'rgba(16, 185, 129, 0.02)' }}>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--color-success)', marginBottom: '0.75rem', display: 'flex', alignCenter: 'center', gap: '0.4rem' }}>
+                    <span>✓</span> Strengths Found
+                  </h4>
+                  {details.keyStrengths?.length > 0 ? (
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {details.keyStrengths.map((strength, i) => (
+                        <li key={i} style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                          • {strength}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', fontStyle: 'italic' }}>
+                      No specific strengths highlighted yet. Try matching with a descriptive job post.
+                    </p>
+                  )}
+                </div>
+
+                {/* Critical Gaps & Recommendations */}
+                <div className="notion-card" style={{ borderColor: 'var(--color-danger)', background: 'rgba(239, 68, 68, 0.02)' }}>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--color-danger)', marginBottom: '0.75rem', display: 'flex', alignCenter: 'center', gap: '0.4rem' }}>
+                    <span>⚠</span> Optimization Steps
+                  </h4>
+                  {details.criticalGaps?.length > 0 ? (
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {details.criticalGaps.map((gap, i) => (
+                        <li key={i} style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                          • {gap}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', fontStyle: 'italic' }}>
+                      No critical gaps found! Your resume matches the job requirements perfectly.
+                    </p>
+                  )}
+                </div>
+
+              </div>
+
+              {/* Complete Skill Breakdown Table */}
               <div className="notion-card">
                 <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                  Skill Gap Analyzer
+                  Skill Keyword Breakdown
                 </h3>
 
-                <div className="flex flex-col gap-5">
-                  <div>
-                    <h4 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--color-success)', marginBottom: '0.5rem' }}>
-                      Matched Core Skills ({successResult.skillsAnalyzed?.matchedCore?.length || 0})
-                    </h4>
-                    {successResult.skillsAnalyzed?.matchedCore?.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {successResult.skillsAnalyzed.matchedCore.map((skill, index) => (
-                          <span key={index} className="notion-tag notion-tag-success">{skill}</span>
-                        ))}
-                      </div>
-                    ) : (
-                      <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', fontStyle: 'italic' }}>No core skills matched.</p>
-                    )}
+                <div className="skill-columns">
+                  {/* Matched skills column */}
+                  <div className="skill-col skill-col-matched">
+                    <div className="skill-col-header">
+                      <span className="skill-col-icon">✓</span>
+                      Matched Skills
+                      <span className="skill-col-count">{successResult.skillsAnalyzed?.matchedCore?.length || 0}</span>
+                    </div>
+                    <div className="skill-col-body">
+                      {successResult.skillsAnalyzed?.matchedCore?.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {successResult.skillsAnalyzed.matchedCore.map((skill, index) => (
+                            <span key={index} className="notion-tag notion-tag-success">{skill}</span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', fontStyle: 'italic' }}>No matching core keywords found in your resume text.</p>
+                      )}
+                    </div>
                   </div>
 
-                  <div>
-                    <h4 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--color-danger)', marginBottom: '0.5rem' }}>
-                      Missing Core Skills ({successResult.skillsAnalyzed?.missingCore?.length || 0})
-                    </h4>
-                    {successResult.skillsAnalyzed?.missingCore?.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {successResult.skillsAnalyzed.missingCore.map((skill, index) => (
-                          <span key={index} className="notion-tag notion-tag-danger">{skill}</span>
-                        ))}
-                      </div>
-                    ) : (
-                      <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', fontStyle: 'italic' }}>No missing core skills! You have covered all requirements.</p>
-                    )}
+                  {/* Missing skills column */}
+                  <div className="skill-col skill-col-missing">
+                    <div className="skill-col-header">
+                      <span className="skill-col-icon">✗</span>
+                      Missing Skills
+                      <span className="skill-col-count">{successResult.skillsAnalyzed?.missingCore?.length || 0}</span>
+                    </div>
+                    <div className="skill-col-body">
+                      {successResult.skillsAnalyzed?.missingCore?.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {successResult.skillsAnalyzed.missingCore.map((skill, index) => (
+                            <span key={index} className="notion-tag notion-tag-danger">{skill}</span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', fontStyle: 'italic' }}>No missing core keywords! You have covered all target skills.</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Contact Information & Metadata */}
+              {/* Contact Information */}
               <div className="notion-card">
                 <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                  Contact Details
+                  Contact Details Detected
                 </h3>
                 <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
                   <div>

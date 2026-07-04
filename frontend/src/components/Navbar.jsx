@@ -2,6 +2,23 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
+function LogoIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="16" y="16" width="480" height="480" rx="96" ry="96" fill="#b6ccfe"/>
+      <path d="M160 96h128l80 80v240c0 17.7-14.3 32-32 32H160c-17.7 0-32-14.3-32-32V128c0-17.7 14.3-32 32-32z" fill="white" opacity="0.95"/>
+      <path d="M288 96v48c0 17.7 14.3 32 32 32h48z" fill="#ccdbfd"/>
+      <circle cx="340" cy="360" r="72" fill="#b6ccfe" stroke="white" strokeWidth="6"/>
+      <polyline points="308,360 330,384 372,336" fill="none" stroke="white" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round"/>
+      <rect x="168" y="200" width="140" height="12" rx="6" fill="#ccdbfd"/>
+      <rect x="168" y="232" width="110" height="12" rx="6" fill="#ccdbfd"/>
+      <rect x="168" y="264" width="80" height="12" rx="6" fill="#ccdbfd"/>
+    </svg>
+  );
+}
+
+export { LogoIcon };
+
 export default function Navbar({ onOpenAuth }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -27,6 +44,7 @@ export default function Navbar({ onOpenAuth }) {
     <header className="navbar">
       <div className="container navbar-container">
         <Link to="/" className="logo">
+          <LogoIcon size={28} />
           ATS Checker
         </Link>
 
