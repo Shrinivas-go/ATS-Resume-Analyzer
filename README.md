@@ -1,91 +1,139 @@
-# ATS Resume Checker
+# ATS Resume Analyzer
 
-A full-stack application designed to analyze resume PDFs against job descriptions, calculating matching scores based on technical skills, experience details, education, and formatting structure.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/Node.js-20.x-green.svg)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-19.x-blue.svg)](https://reactjs.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248.svg)](https://www.mongodb.com/)
+
+## Overview
+ATS Resume Analyzer is a full-stack web application designed to help job seekers optimize their resumes for Applicant Tracking Systems (ATS). By analyzing a resume PDF against a target job description, the system provides a comprehensive match score based on technical skills, experience, education, and formatting. This tool demystifies the screening process, enabling users to tailor their applications effectively.
 
 ## Features
-
-- **ATS Resume Scanning**: Upload a resume in PDF format and paste a target job description to get instant feedback.
-- **Weighted Skill Scoring**: Compares core and optional skills, factoring in experience, education, and formatting completeness.
-- **Detailed Skill Mapping**: Breaks down matched and missing core/optional skills in a clear dashboard interface.
-- **User Scan History**: Registered users can save, view, and track their previous resume scans over time.
-- **Authentication**: Supports secure local email/password sign-in and Google OAuth 2.0.
+- **Automated Resume Parsing**: Seamlessly extracts text from uploaded PDF resumes.
+- **Intelligent Keyword Matching**: Compares extracted resume text against job descriptions to identify missing and matched core skills.
+- **Weighted Scoring System**: Calculates an overall match percentage factoring in skills, experience, and educational requirements.
+- **Detailed Analytics Dashboard**: Visualizes missing skills and formatting errors in an intuitive, responsive UI.
+- **User Authentication**: Secure local authentication and Google OAuth 2.0 integration for seamless login.
+- **Scan History**: Allows authenticated users to save, track, and review past resume analyses.
+- **PDF Report Generation**: Export analysis results as downloadable PDF reports.
 
 ## Tech Stack
+- **Frontend**: React 19, Vite, React Router, Radix UI, Framer Motion, jsPDF
+- **Backend**: Node.js, Express.js, Multer (file handling), pdf-parse, Zod (validation)
+- **Database**: MongoDB (Atlas), Mongoose ODM
+- **Authentication**: JWT (JSON Web Tokens), Google OAuth 2.0, bcryptjs
+- **Testing**: Jest, Supertest (Backend) | Vitest, Playwright (Frontend)
+- **Deployment**: Vercel (Frontend), Render (Backend)
+- **Tools**: ESLint, npm workspaces (Monorepo setup)
 
-| Layer | Technologies |
-|-------|-------------|
-| **Frontend** | React, Vite, React Router, Tailwind CSS (or Vanilla CSS) |
-| **Backend** | Node.js, Express, Mongoose, Multer, pdf-parse |
-| **Database** | MongoDB Atlas |
-| **Authentication** | JWT (access and refresh tokens), Google OAuth 2.0, bcryptjs |
-| **Testing** | Jest (Backend) |
-| **Deployment** | Vercel (Frontend), Render (Backend), Render Blueprint |
+## Architecture
+![Architecture Diagram](docs/architecture.png)
+
+**User** → **Frontend (React)** → **REST API (Express)** → **Backend Logic (PDF parsing & text matching)** → **Database (MongoDB)**
+
+1. The user uploads a PDF and pastes a Job Description on the React frontend.
+2. The frontend sends a `multipart/form-data` request to the Express API.
+3. The backend uses `pdf-parse` to extract text from the PDF.
+4. The scoring engine calculates keyword matches and structural integrity.
+5. The analysis result is stored in MongoDB.
+6. The backend returns the calculated score and feedback to the frontend, which renders the results.
 
 ## Folder Structure
-
-```
+```text
 ats-resume-checker/
-├── backend/
-│   ├── tests/                  # Backend unit tests
-│   ├── uploads/                # Multer upload directory
-│   ├── ats_checker.js          # Main scoring engine
-│   ├── index.js                # Express server and routes
-│   ├── models.js               # Mongoose database models
-│   └── package.json            # Backend package manager config
-├── frontend/
-│   ├── src/
-│   │   ├── components/         # Dashboard, Hero, Navbar, Footer, AuthModal
-│   │   ├── config/             # Axios API client setup
-│   │   ├── context/            # Authentication context
-│   │   ├── pages/              # Landing page
-│   │   └── main.jsx            # Application entry point
-│   ├── index.html              # HTML entry template
-│   └── package.json            # Frontend package manager config
-├── render.yaml                 # Render blueprint for backend
-└── package.json                # Root monorepo scripts config
+├── backend/                  # Node.js Express server
+│   ├── tests/                # Unit and integration tests (Jest)
+│   ├── index.js              # Entry point & API routes
+│   ├── ats_checker.js        # Core resume parsing and scoring logic
+│   └── models.js             # Mongoose schemas
+├── frontend/                 # React frontend application
+│   ├── src/                  # React components, pages, and context
+│   ├── tests/                # E2E and component tests (Playwright, Vitest)
+│   └── vite.config.js        # Vite bundler configuration
+├── package.json              # Monorepo configuration
+└── render.yaml               # Infrastructure-as-code for Render deployment
 ```
 
 ## Installation
 
 ### Prerequisites
+- [Node.js](https://nodejs.org/en/download/) (v18 or higher)
+- [MongoDB](https://www.mongodb.com/try/download/community) (Local instance or Atlas URI)
+- Google Cloud Console Project (for OAuth Client ID)
 
-- **Node.js** (v18 or higher)
-- **MongoDB** (Local instance or MongoDB Atlas cluster URI)
-- **Google OAuth Client ID** (optional, for Google Login integration)
-
-### Setup
-
-1. **Clone the repository**:
+### Local Setup
+1. **Clone the repository**
    ```bash
-   git clone https://github.com/Shrinivas-go/ats-resume-checker.git
+   git clone https://github.com/yourusername/ats-resume-checker.git
    cd ats-resume-checker
    ```
 
-2. **Install all dependencies**:
+2. **Install dependencies**
    ```bash
    npm run install:all
    ```
 
-3. **Configure Environment Variables**:
-   - For the **Backend**, copy `backend/.env.example` to `backend/.env` and enter your database connection string and credentials.
-   - For the **Frontend**, copy `frontend/.env.example` to `frontend/.env.local` and configure the backend URL and Google Client ID.
+3. **Configure Environment Variables**
+   Set up the `.env` files as described in the [Environment Variables](#environment-variables) section.
 
-4. **Run Development Servers**:
+4. **Start the development servers**
    ```bash
-   # Run backend and frontend dev servers concurrently
    npm run dev:backend & npm run dev:frontend
    ```
+   The frontend will be available at `http://localhost:5173` and the backend at `http://localhost:5000`.
 
-## Running Tests
+## Environment Variables
 
-To run the backend test suite:
-```bash
-cd backend
-npm test
+Create `.env` files in both the `backend` and `frontend` directories using the provided templates.
+
+**`backend/.env`**
+```env
+NODE_ENV=development
+PORT=<YOUR_BACKEND_PORT>
+MONGODB_URI=<YOUR_MONGODB_CONNECTION_STRING>
+JWT_ACCESS_SECRET=<YOUR_JWT_ACCESS_SECRET>
+JWT_REFRESH_SECRET=<YOUR_JWT_REFRESH_SECRET>
+JWT_ACCESS_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+FRONTEND_URL=<YOUR_FRONTEND_URL>
+GOOGLE_CLIENT_ID=<YOUR_GOOGLE_CLIENT_ID>
 ```
 
-## Deployment
+**`frontend/.env.local`**
+```env
+VITE_API_URL=<YOUR_BACKEND_API_URL>
+VITE_GOOGLE_CLIENT_ID=<YOUR_GOOGLE_CLIENT_ID>
+```
 
-The application is configured to run as two services:
-- **Frontend** can be deployed to Vercel (using the included `vercel.json` configurations).
-- **Backend** can be deployed to Render using the included `render.yaml` blueprint.
+## Usage
+1. Navigate to the web application.
+2. Sign up or log in using your Google account or email.
+3. On the dashboard, upload your resume (PDF) and paste the target Job Description.
+4. Click **Analyze**.
+5. Review your match score, missing skills, and formatting recommendations.
+6. Check the **History** tab to revisit past analyses.
+
+## Screenshots
+
+| Landing Page | ATS Score Analysis |
+|-----------|------------------|
+| ![Landing Page](docs/screenshots/landing-page.png) | ![ATS Score Analysis](docs/screenshots/ats-score-analysis.png) |
+
+| Resume Builder | AI Assistant |
+|-----------|------------------|
+| ![Resume Builder](docs/screenshots/resume-builder.png) | ![AI Assistant](docs/screenshots/ai-assistant.png) |
+
+## Future Improvements
+- **LLM Integration**: Implement OpenAI or Anthropic APIs for deeper semantic matching beyond keyword extraction.
+- **Dockerization**: Containerize both the frontend and backend using Docker and Docker Compose for easier local development.
+- **CI/CD Pipeline**: Add GitHub Actions to automatically run test suites and linting on pull requests.
+
+## Learning Outcomes
+Building this project involved solving several key software engineering challenges:
+- **Binary Data Handling**: Managing file uploads (`multipart/form-data`) and parsing raw binary PDF data in Node.js.
+- **Authentication Security**: Implementing secure token-based authentication (JWT) alongside third-party OAuth 2.0.
+- **Monorepo Management**: Structuring a full-stack codebase efficiently using npm workspaces.
+- **Algorithmic Thinking**: Designing a weighted scoring algorithm to accurately evaluate unstructured text data.
+
+## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
