@@ -1,78 +1,84 @@
-import React, { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { MotionConfig } from 'framer-motion';
+import { Toaster } from 'sonner';
 import { AuthProvider, useAuth } from './context/AuthContext';
-
-// Components & Pages
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
 import Landing from './pages/Landing';
-import Dashboard from './components/Dashboard';
+
+// The scan desk (and jsPDF inside it) loads only when someone opens it
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+
+// Dev-only preview of the results view with sample data (stripped from production builds)
+const DevPreview = import.meta.env.DEV ? lazy(() => import('./dev/DevPreview')) : null;
+
+function ProtectedRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="page-loading">
+        <p className="label">Checking your session…</p>
+      </div>
+    );
+  }
+  if (!user) return <Navigate to="/" replace />;
+  return children;
+}
 
 function AppContent() {
-  const { user, loading } = useAuth();
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authMode, setAuthMode] = useState('login'); // 'login' or 'register'
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
 
-  const handleOpenAuth = (mode = 'login') => {
+  const openAuth = (mode = 'login') => {
     setAuthMode(mode);
-    setAuthModalOpen(true);
-  };
-
-  const handleCloseAuth = () => {
-    setAuthModalOpen(false);
-  };
-
-  const handleSwitchAuthMode = (mode) => {
-    setAuthMode(mode);
-  };
-
-  // Simple Protected Route helper component
-  const ProtectedRoute = ({ children }) => {
-    if (loading) {
-      return (
-        <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>
-          <h3>Loading your profile...</h3>
-        </div>
-      );
-    }
-    if (!user) {
-      // If not logged in, redirect home and open the login dialog
-      return <Navigate to="/" replace />;
-    }
-    return children;
+    setAuthOpen(true);
   };
 
   return (
-    <div className="app-wrapper">
-      {/* Universal Navbar */}
-      <Navbar onOpenAuth={handleOpenAuth} />
-
-      {/* Main Page Area */}
-      <main className="main-content">
+    <div className="app">
+      <Navbar onOpenAuth={openAuth} />
+      <main>
         <Routes>
-          <Route path="/" element={<Landing onOpenAuth={handleOpenAuth} />} />
-          
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } />
-
-          {/* Catch-all redirect to Landing */}
+          <Route path="/" element={<Landing onOpenAuth={openAuth} />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<div className="page-loading"><p className="label">Opening the desk…</p></div>}>
+                  <Dashboard />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          {DevPreview && (
+            <Route
+              path="/dev/:view"
+              element={
+                <Suspense fallback={null}>
+                  <DevPreview />
+                </Suspense>
+              }
+            />
+          )}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
-
-      {/* Universal Footer */}
       <Footer />
-
-      {/* Auth Modal overlay */}
-      <AuthModal
-        isOpen={authModalOpen}
-        mode={authMode}
-        onClose={handleCloseAuth}
-        onSwitchMode={handleSwitchAuthMode}
+      <AuthModal isOpen={authOpen} mode={authMode} onClose={() => setAuthOpen(false)} onSwitchMode={setAuthMode} />
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          unstyled: true,
+          classNames: {
+            toast: 'toast',
+            title: 'toast__title',
+            description: 'toast__desc',
+            success: 'toast--ok',
+            error: 'toast--err',
+          },
+        }}
       />
     </div>
   );
@@ -80,8 +86,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <MotionConfig reducedMotion="user">
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </MotionConfig>
   );
 }

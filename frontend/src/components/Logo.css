@@ -1,0 +1,23 @@
+.logo {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--ink);
+}
+.logo__mark { width: 18px; height: 23px; align-self: center; }
+.logo__word {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 24px;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+.logo__sub {
+  font-family: var(--font-label);
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+@media (max-width: 420px) { .logo__sub { display: none; } }

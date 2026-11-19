@@ -1,143 +1,87 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import Icon from './Icon';
 import '../styles/BackendWarmupCard.css';
 
-/**
- * Status messages that rotate while the backend is waking up.
- * Each creates the impression of an intentional initialization sequence.
- */
-const STATUS_MESSAGES = [
-  'Starting Analysis Engine...',
-  'Connecting Secure Services...',
-  'Preparing Resume Parser...',
-  'Loading ATS Models...',
-  'Optimizing Matching Engine...',
-  'Almost Ready...',
+/** Rotating lines while the Render free-tier backend wakes up. */
+const STATUS = [
+  'Sending a wake-up request',
+  'Server is starting',
+  'Connecting to the database',
+  'Loading the skill lists',
+  'Nearly there',
 ];
-
-/** Interval between rotating status messages (ms) */
-const MESSAGE_ROTATE_INTERVAL = 3000;
-
-/** Delay after backend becomes ready before auto-dismissing (ms) */
-const READY_DISMISS_DELAY = 1500;
+const ROTATE_MS = 3000;
+const READY_DISMISS_MS = 1200;
 
 /**
- * BackendWarmupCard
- *
- * A professional cold-start overlay that displays while the backend
- * server is asleep (Render free tier). Polls /health and provides a
- * polished boot sequence experience instead of showing error states.
- *
- * @param {Object}  props
- * @param {boolean} props.isReady     — whether the backend is responsive
- * @param {boolean} props.isChecking  — whether health polling is active
- * @param {() => void} [props.onReady] — callback fired after ready + dismiss delay
+ * Cold-start overlay. Covers the viewport, or the dialog it is placed in
+ * (a transformed parent becomes its containing block).
  */
 export default function BackendWarmupCard({ isReady, isChecking, onReady }) {
-  const [messageIndex, setMessageIndex] = useState(0);
+  const [i, setI] = useState(0);
   const [faqOpen, setFaqOpen] = useState(false);
   const [exiting, setExiting] = useState(false);
   const [dismissed, setDismissed] = useState(false);
-  const dismissTimerRef = useRef(null);
-  const messageTimerRef = useRef(null);
+  const timer = useRef(null);
 
-  // ── Rotate status messages ────────────────────────────────────────
   useEffect(() => {
     if (isReady) return;
-
-    messageTimerRef.current = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % STATUS_MESSAGES.length);
-    }, MESSAGE_ROTATE_INTERVAL);
-
-    return () => clearInterval(messageTimerRef.current);
+    const id = setInterval(() => setI((n) => Math.min(n + 1, STATUS.length - 1)), ROTATE_MS);
+    return () => clearInterval(id);
   }, [isReady]);
 
-  // ── Handle ready → exit animation → dismiss ──────────────────────
   useEffect(() => {
     if (!isReady) return;
-
-    dismissTimerRef.current = setTimeout(() => {
+    timer.current = setTimeout(() => {
       setExiting(true);
-
-      // Wait for fade-out animation to complete, then dismiss
       setTimeout(() => {
         setDismissed(true);
         onReady?.();
-      }, 500);
-    }, READY_DISMISS_DELAY);
-
-    return () => clearTimeout(dismissTimerRef.current);
+      }, 450);
+    }, READY_DISMISS_MS);
+    return () => clearTimeout(timer.current);
   }, [isReady, onReady]);
 
-  // ── Don't render if fully dismissed or not checking ───────────────
-  if (dismissed) return null;
-  if (!isChecking && !isReady) return null;
+  if (dismissed || (!isChecking && !isReady)) return null;
 
   return (
-    <div className={`warmup-overlay ${exiting ? 'warmup-overlay--exiting' : ''}`}>
-      <div className="warmup-card">
-
-        {/* Icon */}
-        <div className="warmup-icon">
-          {isReady ? '✅' : '⚡'}
-        </div>
-
-        {/* Title */}
-        <h2 className="warmup-title">ATS Analysis Engine</h2>
-
-        {/* Status badge */}
-        <div className={`warmup-badge ${isReady ? 'warmup-badge--ready' : 'warmup-badge--starting'}`}>
-          <span className="warmup-badge-dot" />
-          {isReady ? 'Analysis Engine Ready' : 'Starting'}
-        </div>
-
-        {/* Progress bar */}
-        <div className="warmup-progress-track">
-          <div className={`warmup-progress-fill ${isReady ? 'warmup-progress-fill--ready' : ''}`} />
-        </div>
-
-        {/* Rotating status message */}
-        <div className="warmup-message-area">
+    <div className={`warm ${exiting ? 'warm--out' : ''}`} role="status" aria-live="polite">
+      <div className="warm__card">
+        <p className="label">Server status</p>
+        <h2 className="display warm__title">
           {isReady ? (
-            <span className="warmup-message warmup-message--active warmup-message--ready">
-              All systems operational
-            </span>
+            <>Parser is <em>ready.</em></>
           ) : (
-            STATUS_MESSAGES.map((msg, i) => (
-              <span
-                key={msg}
-                className={`warmup-message ${i === messageIndex ? 'warmup-message--active' : ''}`}
-              >
-                {msg}
-              </span>
-            ))
+            <>Warming up <em>the parser.</em></>
           )}
+        </h2>
+
+        <div className={`warm__bar ${isReady ? 'is-ready' : ''}`} aria-hidden="true">
+          <span />
         </div>
 
-        {/* Footer note — only while loading */}
+        <ol className="warm__log">
+          {(isReady ? [...STATUS.slice(0, i + 1), 'Ready'] : STATUS.slice(0, i + 1)).map((s, n, arr) => (
+            <li key={s} className={n === arr.length - 1 ? 'is-now' : ''}>
+              <span className="label">{String(n + 1).padStart(2, '0')}</span>
+              {s}
+              {n < arr.length - 1 || isReady ? <Icon name="check" /> : <span className="warm__dots" />}
+            </li>
+          ))}
+        </ol>
+
         {!isReady && (
           <>
-            <p className="warmup-footer-note">
-              Your first visit may take up to one minute while the analysis server starts.
-            </p>
-
-            {/* Expandable FAQ */}
-            <button
-              className="warmup-faq-toggle"
-              onClick={() => setFaqOpen((prev) => !prev)}
-              type="button"
-            >
-              Why does this happen?
-              <span className={`warmup-faq-chevron ${faqOpen ? 'warmup-faq-chevron--open' : ''}`}>
-                ▼
-              </span>
+            <p className="warm__note">The first visit can take up to a minute while the server starts.</p>
+            <button type="button" className="warm__faq" onClick={() => setFaqOpen((v) => !v)} aria-expanded={faqOpen}>
+              Why does this happen? <Icon name="chevron" className={faqOpen ? 'is-open' : ''} />
             </button>
-
-            <div className={`warmup-faq-body ${faqOpen ? 'warmup-faq-body--open' : ''}`}>
-              <p className="warmup-faq-text">
-                This demo uses Render hosting. After periods of inactivity the backend 
-                automatically sleeps. Opening the application wakes it automatically.
+            {faqOpen && (
+              <p className="warm__faq-body">
+                The backend runs on Render’s free tier, which puts it to sleep after a while
+                with no traffic. Opening the app wakes it up; after that it responds normally.
               </p>
-            </div>
+            )}
           </>
         )}
       </div>

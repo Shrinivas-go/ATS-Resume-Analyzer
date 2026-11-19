@@ -83,10 +83,6 @@ const scanHistorySchema = new mongoose.Schema({
         default: null,
         index: true,
     },
-    ipAddress: {
-        type: String,
-        default: '',
-    },
     filename: {
         type: String,
         required: true,
@@ -114,6 +110,24 @@ const scanHistorySchema = new mongoose.Schema({
     predictedCategory: {
         type: String,
         default: 'Unknown',
+    },
+    // Which engine produced the score: 'ats-scorer' (model service) or 'rules' (fallback)
+    engine: {
+        type: String,
+        default: 'rules',
+    },
+    dimensions: {
+        type: [{ _id: false, name: String, label: String, score: Number, max: Number }],
+        default: [],
+    },
+    // Written by ats-lm after the scan returns (may be missing if the model service was down)
+    review: {
+        summary: String,
+        dimensions: [{ _id: false, name: String, label: String, score: Number, reason: String }],
+    },
+    profile: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null,
     },
     // We can store structural results in scan history as well
     matchedSkills: {

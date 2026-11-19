@@ -1,0 +1,45 @@
+/* ATS Resume Checker — "proof sheet" tokens.
+   See docs/design-direction.md for the reasoning. */
+
+:root {
+  /* Paper, graphite, highlighter, proof red */
+  --bg: #e6e5df;          /* photocopy paper */
+  --bg-2: #f3f2ed;        /* fresh sheet */
+  --ink: #17181a;         /* graphite */
+  --mute: #55575b;        /* secondary text (5.9:1 on --bg) */
+  --line: rgba(23, 24, 26, 0.14);
+  --line-strong: rgba(23, 24, 26, 0.32);
+  --accent: #f4d50b;      /* highlighter — always behind ink, never text on paper */
+  --accent-soft: rgba(244, 213, 11, 0.55);
+  --signal: #c4213a;      /* proof red — missing / errors only */
+
+  /* Inverse (graphite) section */
+  --inv-bg: #17181a;
+  --inv-bg-2: #212225;
+  --inv-ink: #e6e5df;
+  --inv-mute: #9c9d9f;
+  --inv-line: rgba(230, 229, 223, 0.14);
+
+  /* Type */
+  --font-display: 'Bodoni Moda Variable', 'Bodoni Moda', 'Didot', Georgia, serif;
+  --font-hand: 'Caveat Variable', 'Caveat', 'Comic Sans MS', cursive;
+  --font-body: 'Instrument Sans Variable', 'Instrument Sans', system-ui, sans-serif;
+  --font-label: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  --fs-label: clamp(11.5px, 0.9vw, 13px);
+  --fs-label-loud: clamp(13px, 1.15vw, 16px);
+  --fs-body: clamp(15.5px, 1.05vw, 17px);
+  --fs-lead: clamp(17px, 1.35vw, 21px);
+
+  /* Space & shape */
+  --gutter: clamp(16px, 4vw, 56px);
+  --maxw: 1440px;
+  --nav-h: 64px;
+  --radius: 2px;
+
+  /* Motion */
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-io: cubic-bezier(0.76, 0, 0.24, 1);
+  --t-ui: 0.45s;
+  --t-reveal: 1.05s;
+}

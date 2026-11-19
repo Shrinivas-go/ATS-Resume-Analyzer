@@ -27,3 +27,7 @@ services:
         sync: false
       - key: ADMIN_EMAIL
         sync: false
+      - key: ML_SERVICE_URL
+        sync: false
+      - key: ML_SERVICE_KEY
+        sync: false

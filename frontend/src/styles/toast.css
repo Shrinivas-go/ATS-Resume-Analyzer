@@ -1,0 +1,33 @@
+/* Sonner, restyled: a graphite slip with a mono title */
+.toast {
+  display: grid;
+  grid-template-columns: 10px 1fr;
+  column-gap: 12px;
+  align-items: baseline;
+  width: min(360px, calc(100vw - 32px));
+  padding: 14px 16px;
+  background: var(--inv-bg);
+  color: var(--inv-ink);
+  border-left: 4px solid var(--accent);
+  font-family: var(--font-body);
+  box-shadow: 6px 8px 0 -2px rgba(23, 24, 26, 0.18);
+}
+.toast::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  grid-row: 1;
+  align-self: center;
+}
+.toast > * { grid-column: 2; }
+.toast [data-icon] { display: none; }
+.toast__title {
+  font-family: var(--font-label);
+  font-size: 12.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.toast__desc { font-size: 14px; color: var(--inv-mute); margin-top: 2px; }
+.toast--err { border-left-color: var(--signal); }
+.toast--err::before { background: var(--signal); }

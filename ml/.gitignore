@@ -1,0 +1,8 @@
+.venv/
+data/
+outputs/
+models/
+__pycache__/
+*.gguf
+service/models/
+.service-key

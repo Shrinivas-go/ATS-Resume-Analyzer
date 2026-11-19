@@ -1,0 +1,64 @@
+.proof-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.mk {
+  position: relative;
+  background: none;
+  color: inherit;
+  padding: 0 0.12em;
+  margin: 0 -0.04em;
+  isolation: isolate;
+}
+
+/* Highlighter: sweeps left to right behind the word */
+.mk--hit::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: -0.05em;
+  right: -0.05em;
+  top: 0.12em;
+  bottom: 0.02em;
+  background: var(--accent);
+  border-radius: 1px 3px 2px 3px;
+  transform: scaleX(0) skewX(-6deg);
+  transform-origin: left center;
+}
+.is-playing .mk--hit::before {
+  transition: transform 0.55s var(--ease) var(--d, 0ms);
+  transform: scaleX(1) skewX(-6deg);
+}
+
+/* Red pencil: a loose ring drawn around the word */
+.mk--miss { color: var(--ink); }
+.mk__ring {
+  position: absolute;
+  left: -0.35em;
+  right: -0.35em;
+  top: -0.3em;
+  bottom: -0.3em;
+  width: calc(100% + 0.7em);
+  height: calc(100% + 0.6em);
+  overflow: visible;
+  pointer-events: none;
+}
+.mk__ring path {
+  fill: none;
+  stroke: var(--signal);
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+.is-playing .mk__ring path {
+  transition: stroke-dashoffset 0.7s var(--ease-io) var(--d, 0ms);
+  stroke-dashoffset: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mk--hit::before { transform: scaleX(1) skewX(-6deg); }
+  .mk__ring path { stroke-dashoffset: 0; }
+}

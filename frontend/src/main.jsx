@@ -1,9 +1,11 @@
+// Global styles first so component styles can override them
+import './styles/base.css';
+import './styles/toast.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import App from './App.jsx';
-import './styles/global.css';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 

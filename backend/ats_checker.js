@@ -851,15 +851,32 @@ function extractWeightedJDSkills(text) {
     return { coreSkills: [], optionalSkills: [] };
   }
 
-  const lines = text.split(/\n|\./).map(line => line.trim()).filter(Boolean);
+  // Split into lines and sentences. A period only ends a sentence when followed by
+  // whitespace and a capital, so "Node.js" / "ASP.NET" stay whole.
+  const lines = text
+    .split(/\n|(?<=[.;])\s+(?=[A-Z(])/)
+    .map(line => line.replace(/^[\s*•\-–·]+/, '').trim())
+    .filter(Boolean);
   const coreSet = new Set();
   const optionalSet = new Set();
   const allSet = new Set();
 
+  // Section context: a short heading such as "Requirements:" or "Nice to have:" applies
+  // to the bullet lines under it until the next heading.
+  const isHeading = (line) => line.length <= 70 && (/:\s*$/.test(line) || /^#+\s/.test(line) || /^\*\*.*\*\*$/.test(line));
+  let mode = null; // 'core' | 'optional' | null
+
   lines.forEach(line => {
     const lowerLine = line.toLowerCase();
-    const isCore = CORE_KEYWORDS.some(kw => lowerLine.includes(kw));
-    const isOptional = OPTIONAL_KEYWORDS.some(kw => lowerLine.includes(kw));
+    const lineCore = CORE_KEYWORDS.some(kw => lowerLine.includes(kw));
+    const lineOptional = OPTIONAL_KEYWORDS.some(kw => lowerLine.includes(kw));
+    if (isHeading(line)) {
+      mode = lineOptional ? 'optional' : lineCore ? 'core' : null;
+    }
+    // The line's own wording wins over its section ("React is a plus" under Requirements)
+    const isOptional = lineOptional || (!lineCore && mode === 'optional');
+    const isCore = !isOptional && (lineCore || mode === 'core');
+    const unscoped = !isCore && !isOptional;
 
     // A. Match against synonym groups (pre-compiled regex)
     for (const [canonical, { regexes }] of SYNONYM_REGEX_MAP) {
@@ -882,8 +899,10 @@ function extractWeightedJDSkills(text) {
       }
     }
 
-    // C. Dynamic capitalized terms
-    const phraseRegex = /\b([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+){1,2})\b/g;
+    // C. Dynamic capitalized terms — only inside requirement sections, so a job title
+    //    or company name in the intro isn't treated as a skill
+    if (unscoped || isHeading(line)) return;
+    const phraseRegex = /\b([A-Z][a-zA-Z]+(?:[ \t]+[A-Z][a-zA-Z]+){1,2})\b/g;
     let phraseMatch;
     while ((phraseMatch = phraseRegex.exec(line)) !== null) {
       const phrase = phraseMatch[0];
@@ -900,14 +919,12 @@ function extractWeightedJDSkills(text) {
     }
   });
 
-  let coreSkills = Array.from(coreSet);
-  let optionalSkills = Array.from(optionalSet);
+  // Known skills mentioned outside any requirement section (e.g. in responsibilities)
+  // still count as core; only "nice to have" skills are optional.
+  allSet.forEach(s => { if (!optionalSet.has(s)) coreSet.add(s); });
 
-  if (coreSkills.length === 0 && optionalSkills.length === 0 && allSet.size > 0) {
-    coreSkills = Array.from(allSet);
-  }
-
-  optionalSkills = optionalSkills.filter(s => !coreSet.has(s));
+  const coreSkills = Array.from(coreSet);
+  const optionalSkills = Array.from(optionalSet).filter(s => !coreSet.has(s));
 
   return { coreSkills, optionalSkills };
 }

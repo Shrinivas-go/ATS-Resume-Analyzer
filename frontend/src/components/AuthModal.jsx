@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useState } from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
 import { GoogleLogin } from '@react-oauth/google';
+import { toast } from 'sonner';
+import { useAuth } from '../context/AuthContext';
 import { useBackendStatus } from '../hooks/useBackendStatus';
 import BackendWarmupCard from './BackendWarmupCard';
+import Icon from './Icon';
+import './AuthModal.css';
 
 export default function AuthModal({ isOpen, mode, onClose, onSwitchMode }) {
   const { login, register, googleLogin } = useAuth();
@@ -12,175 +16,136 @@ export default function AuthModal({ isOpen, mode, onClose, onSwitchMode }) {
   const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Only poll when the modal is actually open
+  // Only poll the backend while the dialog is open
   const { isReady, isChecking } = useBackendStatus({ enabled: isOpen });
-
-  if (!isOpen) return null;
-
   const backendDown = !isReady;
+  const isLogin = mode === 'login';
+
+  const done = (welcome) => {
+    toast.success(welcome);
+    onClose();
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (backendDown) return;
     setFormError('');
+    if (!isLogin && !name.trim()) {
+      setFormError('Add your name so we can label your saved scans.');
+      return;
+    }
     setLoading(true);
-
     try {
-      if (mode === 'login') {
-        const res = await login(email, password);
-        if (res.success) {
-          onClose();
-        } else {
-          setFormError(res.message || 'Login failed.');
-        }
-      } else {
-        if (!name.trim()) {
-          setFormError('Name is required');
-          setLoading(false);
-          return;
-        }
-        const res = await register(name, email, password);
-        if (res.success) {
-          onClose();
-        } else {
-          setFormError(res.message || 'Registration failed.');
-        }
-      }
-    } catch (err) {
+      const res = isLogin ? await login(email, password) : await register(name, email, password);
+      if (res.success) done(isLogin ? 'Logged in' : 'Account created');
+      else setFormError(res.message || (isLogin ? 'Login failed.' : 'Registration failed.'));
+    } catch {
       setFormError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSuccess = async (credentialResponse) => {
+  const handleGoogleSuccess = async ({ credential }) => {
     setFormError('');
     setLoading(true);
     try {
-      const res = await googleLogin(credentialResponse.credential);
-      if (res.success) {
-        onClose();
-      } else {
-        setFormError(res.message || 'Google Login failed.');
-      }
-    } catch (err) {
-      setFormError('Google Login failed.');
+      const res = await googleLogin(credential);
+      if (res.success) done(res.isNewUser ? 'Account created with Google' : 'Logged in with Google');
+      else setFormError(res.message || 'Google login failed.');
+    } catch {
+      setFormError('Google login failed.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Derive the submit button label
-  const getButtonLabel = () => {
-    if (backendDown) return 'Starting Server...';
-    if (loading) return 'Processing...';
-    return mode === 'login' ? 'Log In' : 'Sign Up';
-  };
+  const buttonLabel = backendDown ? 'Waking the server…' : loading ? 'One moment…' : isLogin ? 'Log in' : 'Create account';
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ border: '1px solid var(--text-main)' }}>
-        <div className="modal-header">
-          <h2 style={{ fontSize: '1.25rem', fontWeight: '700' }}>
-            {mode === 'login' ? 'Log In to ATS Checker' : 'Create Account'}
-          </h2>
-          <button onClick={onClose} className="notion-btn" style={{ border: 'none', background: 'none', padding: '0.2rem', fontSize: '1.2rem', cursor: 'pointer' }}>
-            ×
-          </button>
-        </div>
-
-        {formError && (
-          <div className="notion-tag notion-tag-danger" style={{ display: 'block', width: '100%', marginBottom: '1rem', padding: '0.5rem', textAlign: 'center' }}>
-            ⚠️ {formError}
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="dlg__overlay" />
+        <Dialog.Content className="dlg" aria-describedby="auth-desc">
+          <div className="dlg__head">
+            <p className="label">{isLogin ? 'Welcome back' : 'New account'}</p>
+            <Dialog.Close className="dlg__close" aria-label="Close">
+              <Icon name="close" />
+            </Dialog.Close>
           </div>
-        )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {mode === 'register' && (
-            <div className="flex flex-col gap-1">
-              <label style={{ fontSize: '0.85rem', fontWeight: '600' }}>Full Name</label>
+          <Dialog.Title className="display dlg__title">
+            {isLogin ? (
+              <>Log in to your <em>desk.</em></>
+            ) : (
+              <>Open a <em>scan desk.</em></>
+            )}
+          </Dialog.Title>
+          <Dialog.Description id="auth-desc" className="dlg__desc">
+            {isLogin
+              ? 'Your past scans are saved to your account.'
+              : 'An account keeps every scan, so you can compare versions of your resume.'}
+          </Dialog.Description>
+
+          {formError && (
+            <p className="dlg__error" role="alert">
+              {formError}
+            </p>
+          )}
+
+          <form onSubmit={handleSubmit} className="dlg__form">
+            {!isLogin && (
+              <label className="field">
+                <span className="label">Full name</span>
+                <input type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required />
+              </label>
+            )}
+            <label className="field">
+              <span className="label">Email</span>
+              <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            </label>
+            <label className="field">
+              <span className="label">Password</span>
               <input
-                type="text"
-                className="notion-input"
-                placeholder="John Doe"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                type="password"
+                autoComplete={isLogin ? 'current-password' : 'new-password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
               />
-            </div>
-          )}
+            </label>
+            <button type="submit" disabled={loading || backendDown} className="btn btn--ink dlg__submit">
+              {buttonLabel} {!loading && !backendDown && <Icon name="arrow" />}
+            </button>
+          </form>
 
-          <div className="flex flex-col gap-1">
-            <label style={{ fontSize: '0.85rem', fontWeight: '600' }}>Email Address</label>
-            <input
-              type="email"
-              className="notion-input"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+          <div className="dlg__or label"><span>or</span></div>
+
+          <div className="dlg__google">
+            {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setFormError('Google login failed. Try email instead.')}
+                useOneTap={false}
+                theme="outline"
+                shape="rectangular"
+                text={isLogin ? 'signin_with' : 'signup_with'}
+              />
+            ) : (
+              <p className="label">Google login isn’t configured here. Use email.</p>
+            )}
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label style={{ fontSize: '0.85rem', fontWeight: '600' }}>Password</label>
-            <input
-              type="password"
-              className="notion-input"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+          <p className="dlg__switch">
+            {isLogin ? 'New here?' : 'Already have an account?'}{' '}
+            <button type="button" onClick={() => { setFormError(''); onSwitchMode(isLogin ? 'register' : 'login'); }}>
+              {isLogin ? 'Create an account' : 'Log in'}
+            </button>
+          </p>
 
-          <button type="submit" disabled={loading || backendDown} className="notion-btn notion-btn-primary" style={{ width: '100%', marginTop: '0.5rem', padding: '0.75rem' }}>
-            {getButtonLabel()}
-          </button>
-        </form>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '1.5rem 0' }}>
-          <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-color)' }}></div>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-light)' }}>OR</span>
-          <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-color)' }}></div>
-        </div>
-
-        {/* Google OAuth Login Button */}
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => setFormError('Google Login failed. Please try email login.')}
-              useOneTap={false}
-            />
-          ) : (
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-light)', fontStyle: 'italic' }}>
-              Google Login is not configured. Use email and password instead.
-            </p>
-          )}
-        </div>
-
-        <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.85rem' }}>
-          {mode === 'login' ? (
-            <p>
-              New here?{' '}
-              <span onClick={() => onSwitchMode('register')} style={{ color: 'var(--periwinkle-3)', cursor: 'pointer', fontWeight: '600', textDecoration: 'underline' }}>
-                Create an account
-              </span>
-            </p>
-          ) : (
-            <p>
-              Already have an account?{' '}
-              <span onClick={() => onSwitchMode('login')} style={{ color: 'var(--periwinkle-3)', cursor: 'pointer', fontWeight: '600', textDecoration: 'underline' }}>
-                Log in
-              </span>
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Backend warmup overlay — renders on top of modal when server is sleeping */}
-      {isChecking && <BackendWarmupCard isReady={isReady} isChecking={isChecking} />}
-    </div>
+          {isChecking && <BackendWarmupCard isReady={isReady} isChecking={isChecking} inline />}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

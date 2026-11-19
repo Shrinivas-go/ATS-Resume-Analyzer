@@ -1,0 +1,97 @@
+.dlg__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(23, 24, 26, 0.55);
+  animation: fade-in 0.4s var(--ease);
+}
+.dlg {
+  position: fixed;
+  z-index: 81;
+  top: 50%;
+  left: 50%;
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100svh - 32px);
+  overflow-y: auto;
+  transform: translate(-50%, -50%);
+  background: var(--bg-2);
+  border: 1px solid var(--ink);
+  padding: clamp(22px, 3vw, 34px);
+  box-shadow: 12px 14px 0 -2px rgba(23, 24, 26, 0.18);
+  animation: dlg-in 0.6s var(--ease);
+}
+.dlg:focus { outline: none; }
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes dlg-in { from { opacity: 0; transform: translate(-50%, calc(-50% + 24px)) rotate(0.6deg); } }
+
+.dlg__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.dlg__close {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-right: -8px;
+  font-size: 18px;
+  color: var(--ink);
+}
+.dlg__close:hover { background: var(--accent); }
+
+.dlg__title { font-size: clamp(38px, 5vw, 52px); }
+.dlg__title em {
+  background: linear-gradient(transparent 58%, var(--accent) 58%, var(--accent) 92%, transparent 92%);
+}
+.dlg__desc { color: var(--mute); margin-top: 12px; }
+
+.dlg__error {
+  margin-top: 18px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--signal);
+  background: color-mix(in srgb, var(--signal) 8%, var(--bg-2));
+  color: var(--ink);
+  font-size: 14.5px;
+}
+
+.dlg__form { display: grid; gap: 16px; margin-top: 24px; }
+.field { display: grid; gap: 6px; }
+.field input,
+.field textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  font-size: 16px;
+  transition: border-color var(--t-ui) var(--ease), box-shadow var(--t-ui) var(--ease), background var(--t-ui) var(--ease);
+}
+.field input:hover,
+.field textarea:hover { border-color: var(--ink); }
+.field input:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--ink);
+  background: var(--bg-2);
+  box-shadow: 0 3px 0 0 var(--accent);
+}
+.dlg__submit { justify-content: center; width: 100%; margin-top: 4px; }
+
+.dlg__or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0;
+}
+.dlg__or::before,
+.dlg__or::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+
+.dlg__google { display: flex; justify-content: center; min-height: 44px; }
+.dlg__switch { margin-top: 22px; text-align: center; font-size: 14.5px; color: var(--mute); }
+.dlg__switch button {
+  color: var(--ink);
+  font-weight: 600;
+  background-image: linear-gradient(var(--accent), var(--accent));
+  background-size: 100% 35%;
+  background-position: 0 85%;
+  background-repeat: no-repeat;
+}
+.dlg__switch button:hover { background-size: 100% 100%; }
