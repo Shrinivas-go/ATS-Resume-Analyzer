@@ -21,11 +21,13 @@ main > .sec { padding: clamp(80px, 12vh, 150px) 0; border-top: 1px solid var(--l
 }
 
 /* ── Rubric ─────────────────────────────────────────────── */
+/* One ruler says "equal parts of 100" once; the rows carry what differs. */
+.rubric__scale { margin: 0 0 clamp(36px, 5vh, 56px); }
 .rubric__bar {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
   height: 56px;
   border: 1px solid var(--ink);
-  margin-bottom: 8px;
 }
 .rubric__bar span {
   position: relative;
@@ -44,17 +46,35 @@ main > .sec { padding: clamp(80px, 12vh, 150px) 0; border-top: 1px solid var(--l
   opacity: 0.06;
   transform: scaleY(0);
   transform-origin: bottom;
-  transition: transform 1s var(--ease) calc(var(--i) * 90ms + 200ms);
+  transition: transform 1s var(--ease) calc(var(--i) * 90ms + 200ms),
+    background var(--t-ui) var(--ease), opacity var(--t-ui) var(--ease);
 }
-.rubric__bar span.is-lead::before { background: var(--accent); opacity: 1; }
-.rubric__bar.in span::before { transform: scaleY(1); }
+.rubric__bar span.is-on::before { background: var(--accent); opacity: 1; }
+.rubric__scale.in .rubric__bar span::before { transform: scaleY(1); }
 .rubric__bar b {
   position: relative;
   font-family: var(--font-label);
   font-weight: 500;
   font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
+.rubric__ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-family: var(--font-label);
+  font-size: 11px;
+  font-style: normal;
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+}
+.rubric__ticks i { font-style: normal; width: 0; display: flex; justify-content: center; }
+.rubric__ticks i:first-child { justify-content: flex-start; }
+.rubric__ticks i:last-child { justify-content: flex-end; }
 
+.rubric__key { margin-bottom: 10px; }
 .rubric__rows { border-top: 1px solid var(--ink); }
 .rubric__row {
   display: grid;
@@ -64,23 +84,47 @@ main > .sec { padding: clamp(80px, 12vh, 150px) 0; border-top: 1px solid var(--l
   padding: 22px 0;
   border-bottom: 1px solid var(--line);
   transition: background var(--t-ui) var(--ease);
+  outline-offset: -2px;
 }
-.rubric__row:hover { background: color-mix(in srgb, var(--bg-2) 70%, transparent); }
-.rubric__w {
+.rubric__row[data-on] { background: color-mix(in srgb, var(--bg-2) 70%, transparent); }
+.rubric__err { display: grid; gap: 12px; justify-items: start; }
+.rubric__mae {
   font-family: var(--font-display);
   font-weight: 800;
   font-size: clamp(40px, 4.4vw, 72px);
   line-height: 0.9;
   font-variant-numeric: lining-nums tabular-nums;
 }
-.rubric__w small {
+.rubric__mae small {
   font-family: var(--font-label);
-  font-weight: 400;
-  font-size: 14px;
-  color: var(--mute);
-  margin-left: 4px;
-  vertical-align: top;
+  font-weight: 500;
+  font-size: 0.42em;
+  color: var(--ink);
+  margin-right: 3px;
+  vertical-align: 0.4em;
 }
+/* 0–20 track; the inked band is the ± miss, centred. Wider band = less sure. */
+.rubric__meter {
+  position: relative;
+  width: min(140px, 100%);
+  height: 8px;
+  border-left: 1px solid var(--ink);
+  border-right: 1px solid var(--ink);
+  background: linear-gradient(var(--line), var(--line)) center / 100% 1px no-repeat;
+}
+.rubric__meter::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: var(--band);
+  transform: translateX(-50%);
+  background: var(--ink);
+  opacity: 0.18;
+  transition: background var(--t-ui) var(--ease), opacity var(--t-ui) var(--ease);
+}
+.rubric__row[data-on] .rubric__meter::after { background: var(--accent); opacity: 1; }
 .rubric__name {
   font-family: var(--font-display);
   font-weight: 700;
@@ -188,8 +232,10 @@ main > .sec.fields {
 }
 @media (max-width: 560px) {
   .rubric__bar { height: 44px; }
-  .rubric__bar b { font-size: 10px; }
+  .rubric__bar b { font-size: 9px; letter-spacing: 0; }
   .rubric__bar span { padding: 4px; }
-  .rubric__row { grid-template-columns: 64px 1fr; gap: 6px 16px; }
+  .rubric__row { grid-template-columns: 88px 1fr; gap: 6px 14px; }
+  .rubric__mae { font-size: 36px; }
+  .rubric__meter { width: 72px; }
   .pass, .pass + .pass { grid-template-columns: 72px 1fr; gap: 12px; }
 }

@@ -30,12 +30,16 @@ export const samplePosting = {
  * Trained on resume/job evaluations from build-small-hackathon/job-search-distill (Apache-2.0).
  * See ml/README.md for how they were trained and how accurate they are.
  */
+/** Every dimension is worth the same; say it once (in the copy), don't repeat it per row. */
+export const pointsEach = 20;
+
+/** mae: ats-scorer's average miss on that dimension, 0–20 scale, 987 test pairs (ml/README.md). */
 export const rubric = [
-  { w: 20, name: 'Skills match', what: 'Hard and technical skills the posting asks for, and whether your resume shows them.' },
-  { w: 20, name: 'Experience', what: 'How relevant your past roles and years are to this job, not just how long you have worked.' },
-  { w: 20, name: 'Education & certifications', what: 'Degrees, fields of study and certifications against what the posting requires.' },
-  { w: 20, name: 'Industry fit', what: 'Whether your background is in the same domain as the company and role.' },
-  { w: 20, name: 'Seniority', what: 'Whether your titles and responsibilities match the level of the role.' },
+  { short: 'Skills', name: 'Skills match', mae: 2.6, what: 'Hard and technical skills the posting asks for, and whether your resume shows them.' },
+  { short: 'Experience', name: 'Experience', mae: 2.8, what: 'How relevant your past roles and years are to this job, not just how long you have worked.' },
+  { short: 'Education', name: 'Education & certifications', mae: 3.7, what: 'Degrees, fields of study and certifications against what the posting requires.' },
+  { short: 'Industry', name: 'Industry fit', mae: 3.0, what: 'Whether your background is in the same domain as the company and role.' },
+  { short: 'Seniority', name: 'Seniority', mae: 3.3, what: 'Whether your titles and responsibilities match the level of the role.' },
 ];
 
 /** Shown under the rubric. Fill from ml/models/ats-scorer/metrics.json after training. */
@@ -43,6 +47,7 @@ export const modelFacts = {
   trainedOn: '7,888 resume–job evaluations',
   testedOn: '987 held-out pairs',
   mae: 10.9,
+  baselineMae: 15.1,
 };
 
 export const passes = [
