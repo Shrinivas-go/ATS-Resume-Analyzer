@@ -19,7 +19,8 @@ from pathlib import Path
 import torch
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
-from transformers import AutoModelForCausalLM, AutoModelForSequenceClassification, AutoTokenizer
+from transformers import (AutoModelForCausalLM, AutoModelForSequenceClassification, AutoTokenizer,
+                          StoppingCriteria, StoppingCriteriaList)
 
 DIMS = ["skills_match", "experience_relevance", "education_certifications", "industry_domain_fit", "seniority_role_alignment"]
 SERVICE_KEY = os.environ.get("SERVICE_KEY", "")
@@ -194,11 +195,38 @@ def sentences(text, n=2):
     return " ".join(parts[:n]).strip()
 
 
-def generate(messages, max_new):
+class StopOnLoop(StoppingCriteria):
+    """Stop when the last WINDOW tokens are one short pattern repeated ("npmjs/npmjs/npmjs…").
+    A 0.5B model under greedy decoding occasionally falls into such a loop and would
+    otherwise spend the whole token budget on it."""
+    WINDOW = 40
+
+    def __call__(self, input_ids, scores, **kwargs):
+        t = input_ids[0, -self.WINDOW:].tolist()
+        if len(t) < self.WINDOW:
+            return False
+        return any(all(t[i] == t[i + p] for i in range(len(t) - p)) for p in range(1, 11))
+
+
+_LOOP = re.compile(r"(.{2,40}?)\1{3,}", re.S)
+
+
+def unloop(text):
+    """Cut a reason at the start of a repeated run, back to its last full sentence."""
+    m = _LOOP.search(text)
+    if not m:
+        return text
+    head = text[: m.start()]
+    cut = max(head.rfind(". "), head.rfind("! "), head.rfind("? "))
+    return head[: cut + 1].strip() if cut > 0 else ""
+
+
+def generate(messages, max_new, sample=False):
     tok, model = need("lm")
     ids = tok.apply_chat_template(messages, add_generation_prompt=True, return_tensors="pt", return_dict=True)
+    opts = dict(do_sample=True, temperature=0.7, top_p=0.9, repetition_penalty=1.15) if sample         else dict(do_sample=False, repetition_penalty=1.05)
     with lm_lock, torch.inference_mode():
-        out = model.generate(**ids, max_new_tokens=max_new, do_sample=False, repetition_penalty=1.05)
+        out = model.generate(**ids, max_new_tokens=max_new, stopping_criteria=StoppingCriteriaList([StopOnLoop()]), **opts)
     return tok.decode(out[0, ids["input_ids"].shape[1]:], skip_special_tokens=True)
 
 
@@ -238,16 +266,26 @@ def review(body: ReviewIn):
         f"JOB: {body.job_title}\n{clip(tok, body.job, 600)}\n\n"
         f"RESUME:\n{clip(tok, body.resume, 950)}\n\nSCORES:\n{scores}"
     )
-    text = generate([{"role": "system", "content": SYSTEM_EVAL}, {"role": "user", "content": prompt}], MAX_NEW_REVIEW)
-    obj = fix_text(first_json(text) or {})
-    got = {d.get("name"): d for d in obj.get("dimensions", []) if isinstance(d, dict)}
-    dims = [
-        {"name": n, "score": s, "reason": sentences(got.get(n, {}).get("reason", ""))}
-        for n, s in zip(DIMS, body.dims)
-    ]
+    messages = [{"role": "system", "content": SYSTEM_EVAL}, {"role": "user", "content": prompt}]
+
+    def attempt(sample):
+        obj = fix_text(first_json(generate(messages, MAX_NEW_REVIEW, sample=sample)) or {})
+        got = {d.get("name"): d for d in obj.get("dimensions", []) if isinstance(d, dict)}
+        reasons = {n: sentences(unloop(str(got.get(n, {}).get("reason", "")))) for n in DIMS}
+        # The model sometimes invents a total ("(55/100)"); the real one is on the page already
+        summary = re.sub(r"\s*\(\d{1,3}/100\)", "", unloop(str(obj.get("summary", ""))))
+        return reasons, sentences(summary)
+
+    reasons, summary = attempt(sample=False)
+    # Greedy output sometimes loops or breaks off; one sampled retry fills only the gaps.
+    if not summary or not all(reasons.values()):
+        more, more_summary = attempt(sample=True)
+        reasons = {n: reasons[n] or more[n] for n in DIMS}
+        summary = summary or more_summary
+    dims = [{"name": n, "score": s, "reason": reasons[n]} for n, s in zip(DIMS, body.dims)]
     if not any(d["reason"] for d in dims):
         raise HTTPException(status_code=502, detail="model returned no usable review")
-    return {"model": "ats-lm", "dimensions": dims, "summary": sentences(obj.get("summary", "")),
+    return {"model": "ats-lm", "dimensions": dims, "summary": summary,
             "ms": int((time.time() - t0) * 1000)}
 
 
