@@ -24,7 +24,7 @@ from transformers import AutoModelForCausalLM, AutoModelForSequenceClassificatio
 DIMS = ["skills_match", "experience_relevance", "education_certifications", "industry_domain_fit", "seniority_role_alignment"]
 SERVICE_KEY = os.environ.get("SERVICE_KEY", "")
 MODEL_DIR = Path(os.environ.get("MODEL_DIR", Path(__file__).parent / "models"))
-MAX_NEW_REVIEW = int(os.environ.get("MAX_NEW_REVIEW", "520"))
+MAX_NEW_REVIEW = int(os.environ.get("MAX_NEW_REVIEW", "700"))
 MAX_NEW_PARSE = int(os.environ.get("MAX_NEW_PARSE", "420"))
 
 torch.set_num_threads(max(1, os.cpu_count() or 1))
@@ -150,6 +150,28 @@ def _prune(v):
         return [x for x in items if x != "" and not (isinstance(x, dict) and all(y in ("", None, [], {}) for y in x.values()))]
     return v
 
+# Some training texts were UTF-8 decoded as Windows-1252 upstream ("â€”" for "—"), and the
+# model learned to write them. Reverse that per run of such characters.
+_MOJI = re.compile("[Â-ô][\u0080-¿ŒœŠšŸŽžƒˆ˜"
+                   "–—‘-„†-•…‰‹›€™�]{1,3}")
+
+
+def fix_text(v):
+    if isinstance(v, dict):
+        return {k: fix_text(x) for k, x in v.items()}
+    if isinstance(v, list):
+        return [fix_text(x) for x in v]
+    if not isinstance(v, str):
+        return v
+
+    def rep(m):
+        t = m.group(0)
+        try:
+            return t.encode("cp1252").decode("utf-8")
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            return "—" if t.startswith("â€") else t
+    return _MOJI.sub(rep, v)
+
 
 def _dedupe(v):
     """The small model sometimes repeats list items ("Pixel Co", "Pixel Co")."""
@@ -217,7 +239,7 @@ def review(body: ReviewIn):
         f"RESUME:\n{clip(tok, body.resume, 950)}\n\nSCORES:\n{scores}"
     )
     text = generate([{"role": "system", "content": SYSTEM_EVAL}, {"role": "user", "content": prompt}], MAX_NEW_REVIEW)
-    obj = first_json(text) or {}
+    obj = fix_text(first_json(text) or {})
     got = {d.get("name"): d for d in obj.get("dimensions", []) if isinstance(d, dict)}
     dims = [
         {"name": n, "score": s, "reason": sentences(got.get(n, {}).get("reason", ""))}
@@ -235,7 +257,7 @@ def parse(body: ParseIn):
     t0 = time.time()
     text = generate([{"role": "system", "content": SYSTEM_PARSE},
                      {"role": "user", "content": "RESUME:\n" + clip(tok, body.resume, 950)}], MAX_NEW_PARSE)
-    obj = first_json(text)
+    obj = fix_text(first_json(text))
     if obj is None:
         raise HTTPException(status_code=502, detail="model returned invalid JSON")
     return {"model": "ats-lm", "profile": _dedupe(obj), "ms": int((time.time() - t0) * 1000)}

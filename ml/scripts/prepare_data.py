@@ -39,9 +39,31 @@ def clip(text, n):
     ids = tok(text, add_special_tokens=False).input_ids
     return text if len(ids) <= n else tok.decode(ids[:n]) + " …"
 
+# Some training texts were UTF-8 decoded as Windows-1252 upstream ("â€”" for "—"), and the
+# model learned to write them. Reverse that per run of such characters.
+_MOJI = re.compile("[Â-ô][\u0080-¿ŒœŠšŸŽžƒˆ˜"
+                   "–—‘-„†-•…‰‹›€™�]{1,3}")
+
+
+def fix_text(v):
+    if isinstance(v, dict):
+        return {k: fix_text(x) for k, x in v.items()}
+    if isinstance(v, list):
+        return [fix_text(x) for x in v]
+    if not isinstance(v, str):
+        return v
+
+    def rep(m):
+        t = m.group(0)
+        try:
+            return t.encode("cp1252").decode("utf-8")
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            return "—" if t.startswith("â€") else t
+    return _MOJI.sub(rep, v)
+
 
 def clean(text):
-    text = (text or "").replace("�", " ")
+    text = fix_text(text or "").replace("�", " ")
     return re.sub(r"[ \t]+", " ", text).strip()
 
 

@@ -10,7 +10,7 @@ const TIMEOUTS = {
     score: Number(process.env.ML_TIMEOUT_SCORE_MS || 25000),
     review: Number(process.env.ML_TIMEOUT_REVIEW_MS || 120000),
     parse: Number(process.env.ML_TIMEOUT_PARSE_MS || 90000),
-    health: 5000,
+    health: 30000, // covers a Modal cold start (~20 s)
 };
 
 const enabled = () => Boolean(ML_URL && ML_KEY);
