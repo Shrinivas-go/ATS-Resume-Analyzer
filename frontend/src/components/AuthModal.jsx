@@ -67,81 +67,85 @@ export default function AuthModal({ isOpen, mode, onClose, onSwitchMode }) {
       <Dialog.Portal>
         <Dialog.Overlay className="dlg__overlay" />
         <Dialog.Content className="dlg" aria-describedby="auth-desc">
-          <div className="dlg__head">
-            <p className="label">{isLogin ? 'Welcome back' : 'New account'}</p>
-            <Dialog.Close className="dlg__close" aria-label="Close">
-              <Icon name="close" />
-            </Dialog.Close>
+          <div className="dlg__intro">
+            <div className="dlg__head">
+              <p className="label">{isLogin ? 'Welcome back' : 'New account'}</p>
+              <Dialog.Close className="dlg__close" aria-label="Close">
+                <Icon name="close" />
+              </Dialog.Close>
+            </div>
+
+            <Dialog.Title className="display dlg__title">
+              {isLogin ? (
+                <>Log in to your <em>desk.</em></>
+              ) : (
+                <>Open a <em>scan desk.</em></>
+              )}
+            </Dialog.Title>
+            <Dialog.Description id="auth-desc" className="dlg__desc">
+              {isLogin
+                ? 'Your past scans are saved to your account.'
+                : 'An account keeps every scan, so you can compare versions of your resume.'}
+            </Dialog.Description>
           </div>
 
-          <Dialog.Title className="display dlg__title">
-            {isLogin ? (
-              <>Log in to your <em>desk.</em></>
-            ) : (
-              <>Open a <em>scan desk.</em></>
+          <div className="dlg__body">
+            {formError && (
+              <p className="dlg__error" role="alert">
+                {formError}
+              </p>
             )}
-          </Dialog.Title>
-          <Dialog.Description id="auth-desc" className="dlg__desc">
-            {isLogin
-              ? 'Your past scans are saved to your account.'
-              : 'An account keeps every scan, so you can compare versions of your resume.'}
-          </Dialog.Description>
 
-          {formError && (
-            <p className="dlg__error" role="alert">
-              {formError}
-            </p>
-          )}
-
-          <form onSubmit={handleSubmit} className="dlg__form">
-            {!isLogin && (
+            <form onSubmit={handleSubmit} className="dlg__form">
+              {!isLogin && (
+                <label className="field">
+                  <span className="label">Full name</span>
+                  <input type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required />
+                </label>
+              )}
               <label className="field">
-                <span className="label">Full name</span>
-                <input type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required />
+                <span className="label">Email</span>
+                <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </label>
-            )}
-            <label className="field">
-              <span className="label">Email</span>
-              <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            </label>
-            <label className="field">
-              <span className="label">Password</span>
-              <input
-                type="password"
-                autoComplete={isLogin ? 'current-password' : 'new-password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </label>
-            <button type="submit" disabled={loading || backendDown} className="btn btn--ink dlg__submit">
-              {buttonLabel} {!loading && !backendDown && <Icon name="arrow" />}
-            </button>
-          </form>
+              <label className="field">
+                <span className="label">Password</span>
+                <input
+                  type="password"
+                  autoComplete={isLogin ? 'current-password' : 'new-password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </label>
+              <button type="submit" disabled={loading || backendDown} className="btn btn--ink dlg__submit">
+                {buttonLabel} {!loading && !backendDown && <Icon name="arrow" />}
+              </button>
+            </form>
 
-          <div className="dlg__or label"><span>or</span></div>
+            <div className="dlg__or label"><span>or</span></div>
 
-          <div className="dlg__google">
-            {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={() => setFormError('Google login failed. Try email instead.')}
-                useOneTap={false}
-                theme="outline"
-                shape="rectangular"
-                text={isLogin ? 'signin_with' : 'signup_with'}
-              />
-            ) : (
-              <p className="label">Google login isn’t configured here. Use email.</p>
-            )}
+            <div className="dlg__google">
+              {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => setFormError('Google login failed. Try email instead.')}
+                  useOneTap={false}
+                  theme="outline"
+                  shape="rectangular"
+                  text={isLogin ? 'signin_with' : 'signup_with'}
+                />
+              ) : (
+                <p className="label">Google login isn’t configured here. Use email.</p>
+              )}
+            </div>
+
+            <p className="dlg__switch">
+              {isLogin ? 'New here?' : 'Already have an account?'}{' '}
+              <button type="button" onClick={() => { setFormError(''); onSwitchMode(isLogin ? 'register' : 'login'); }}>
+                {isLogin ? 'Create an account' : 'Log in'}
+              </button>
+            </p>
           </div>
-
-          <p className="dlg__switch">
-            {isLogin ? 'New here?' : 'Already have an account?'}{' '}
-            <button type="button" onClick={() => { setFormError(''); onSwitchMode(isLogin ? 'register' : 'login'); }}>
-              {isLogin ? 'Create an account' : 'Log in'}
-            </button>
-          </p>
 
           {isChecking && <BackendWarmupCard isReady={isReady} isChecking={isChecking} inline />}
         </Dialog.Content>
